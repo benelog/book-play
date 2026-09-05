@@ -1,0 +1,12 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Placeholder art preview</title>
+<style>body{background:#1b2447;color:#ece6d6;font-family:serif;margin:20px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}.c{border:3px double #6f7bb0;background:#f7efdd}.c svg{display:block;width:100%}.c div{padding:4px 8px;color:#f2d16b;font-size:14px}</style></head>
+<body><h1 style="font-weight:400" id="h">Placeholder art preview</h1><div class="g" id="g"></div>
+<script>
+// usage: tools/gallery.html?book=little-prince  (default: little-prince)
+const id = new URLSearchParams(location.search).get('book') || 'little-prince';
+document.getElementById('h').textContent = `Placeholder art · books/${id}/art.js`;
+function load(src){return new Promise(r=>{const s=document.createElement('script');s.src=src;s.async=false;s.onload=()=>r(true);s.onerror=()=>r(false);document.head.appendChild(s);});}
+(async()=>{ await load(`../books/${id}/art.js`); await load(`../books/${id}/scenes.js`);
+  const g=document.getElementById('g'); if(!window.LP_ART){g.textContent='This book has no art.js (generic placeholders are used in the game).';return;}
+  g.innerHTML=window.LP_SCENES.map(c=>`<div class="c">${window.LP_ART.chapter(c.num)}<div>${c.num}. ${c.title}</div></div>`).join(''); })();
+</script></body></html>

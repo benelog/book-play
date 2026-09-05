@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Once Upon a Line</title>
+<script>
+  // GitHub Pages has no URL rewriting: unknown paths land here. Remember the requested path
+  // and bounce to the app shell, which restores it (see the boot section of js/app.js).
+  (function () {
+    var p = location.pathname, i = p.indexOf('/books/');
+    var root = i >= 0 ? p.slice(0, i) + '/' : p.replace(/[^/]*$/, '');
+    try { sessionStorage.setItem('lp.redirect', p + location.search + location.hash); } catch (e) {}
+    location.replace(root);
+  })();
+</script></head>
+<body style="background:#17203d;color:#ece6d6;font-family:Georgia,serif;text-align:center;padding:40px">Opening the book…</body></html>

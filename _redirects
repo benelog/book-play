@@ -1,0 +1,3 @@
+# Pretty book URLs -> the app shell (Cloudflare Pages / Netlify style)
+/books/:id/chapters/*  /index.html  200
+/books/:id             /index.html  200

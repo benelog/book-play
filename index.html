@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Once Upon a Line</title>
+  <script>
+    // Pretty URLs (/books/<id>/chapters/<n>) are served by tools/serve.py or a host rewrite; point relative asset paths at the site root.
+    (function () { var m = location.pathname.match(/^(.*?)\/books\/[^/]+(?:\/.*)?$/); if (m) document.write('<base href="' + (m[1] || '') + '/">'); })();
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app" id="app"></main>
+  <script src="js/storage.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/matcher.js"></script>
+  <script src="js/tts.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# The Little Prince: the English translation (CC BY-NC-ND) and Saint-Exupéry's drawings
+# (still under copyright in the US) stay local. Public-domain books are committed.
+books/little-prince/text/*.txt
+books/little-prince/text/book.js
+books/little-prince/images/*.jpg
+books/little-prince/images/*.jpeg
+books/little-prince/images/*.png
+books/little-prince/images/*.webp
+__pycache__/
+.DS_Store
