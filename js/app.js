@@ -1,7 +1,7 @@
-/* Once Upon a Line — learn English with illustrated classics, adventure-game style.
+/* Book Play — learn English with illustrated classics, adventure-game style.
    Library page → book page. Book assets load from books/<id>/ on demand. Works from file:// (no fetch). */
 (function () {
-  const SITE = 'Once Upon a Line';
+  const SITE = 'Book Play';
   const S = window.LP_STORAGE, P = window.LP_PARSER, M = window.LP_MATCHER, T = window.LP_TTS;
   const LIBRARY = window.LP_LIBRARY || [];
   const IMG_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];

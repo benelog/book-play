@@ -15,7 +15,7 @@ open_browser() {
   fi
 }
 
-echo "Once Upon a Line"
+echo "Book Play"
 if ! command -v python3 >/dev/null 2>&1; then
   echo "python3 is required (it runs tools/serve.py). You can also open index.html directly in Chrome." >&2
   exit 1

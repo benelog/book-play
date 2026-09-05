@@ -1,4 +1,4 @@
-# Once Upon a Line
+# Book Play
 
 삽화가 있는 고전 원서로 영어를 배우는 텍스트 어드벤처입니다. 첫 화면(서재)에서 책을 고르면,
 1980년대 일본 PC 어드벤처처럼 위에는 삽화, 아래에는 메시지 창이 나오고, 상황에 맞는 영어 대사를 말하면 다음 장면으로 넘어갑니다.
@@ -11,7 +11,7 @@
 
 `index.html`을 브라우저(Chrome 권장)에서 직접 열어도 동작합니다. 빌드 과정은 없습니다.
 
-공개 사이트: https://benelog.github.io/once-upon-a-line/ (GitHub Pages, `main` 브랜치 루트에서 배포). GitHub Pages에는 URL 재작성이 없어서 `404.html`이 요청 경로를 기억했다가 `index.html`로 넘기는 방식으로 `/books/<id>/...` 경로를 처리합니다.
+공개 사이트: https://benelog.github.io/book-play/ (GitHub Pages, `main` 브랜치 루트에서 배포). GitHub Pages에는 URL 재작성이 없어서 `404.html`이 요청 경로를 기억했다가 `index.html`로 넘기는 방식으로 `/books/<id>/...` 경로를 처리합니다.
 `start.sh`는 실행 전에 `tools/embed-text.py`를 돌려 각 책의 `text/*.txt`를 `text/book.js`로 변환한 뒤 `tools/serve.py`를 띄웁니다.
 
 ## 구성
