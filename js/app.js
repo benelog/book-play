@@ -254,8 +254,6 @@
   }
 
   function defaultCredit(file) {
-    if (/mcneill/i.test(file)) return 'Translation by Jeff McNeill · CC BY-NC-ND 4.0';
-    if (/woods/i.test(file)) return 'Translation by Katherine Woods';
     if (/gutenberg|^pg\d+/i.test(file)) return 'Text from Project Gutenberg (public domain)';
     return 'Source: ' + file;
   }

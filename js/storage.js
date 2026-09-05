@@ -26,24 +26,6 @@ window.LP_STORAGE = (function () {
     return { current: 1, completed: {}, read: {}, scene: {}, attempts: {}, updatedAt: null };
   }
 
-  // One-time migration from the single-book layout (lp.v1.chapters / lp.v1.progress)
-  function migrate() {
-    try {
-      for (const name of ['chapters', 'progress']) {
-        const old = localStorage.getItem(`${NS}.${name}`);
-        if (old && !localStorage.getItem(k(name, 'little-prince'))) localStorage.setItem(k(name, 'little-prince'), old);
-        if (old) localStorage.removeItem(`${NS}.${name}`);
-      }
-      const s = read(KEY_SETTINGS, null);
-      if (s && ('source' in s || 'credit' in s) && !localStorage.getItem(k('book', 'little-prince'))) {
-        write(k('book', 'little-prince'), { source: s.source, credit: s.credit, creditAuto: s.creditAuto, parserVersion: s.parserVersion, freeMove: s.freeMove });
-        delete s.source; delete s.credit; delete s.creditAuto; delete s.parserVersion; delete s.freeMove;
-        write(KEY_SETTINGS, s);
-      }
-    } catch (e) { /* ignore */ }
-  }
-  migrate();
-
   return {
     use(id) { book = id; },
     current: () => book,

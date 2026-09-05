@@ -9,7 +9,7 @@ const ok = (cond, msg) => { if (!cond) { fails++; console.log('FAIL', msg); } };
 const roman = ['', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII','XXIII','XXIV','XXV','XXVI','XXVII'];
 const words = ['', 'One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen','Twenty','Twenty-One','Twenty-Two','Twenty-Three','Twenty-Four','Twenty-Five','Twenty-Six','Twenty-Seven'];
 function synth(headingFn, blankLines = true) {
-  let t = 'THE LITTLE PRINCE\n\nTo Leon Werth\n\n';
+  let t = 'AN EXAMPLE BOOK\n\nTo a friend\n\n';
   for (let i = 1; i <= 27; i++) {
     t += headingFn(i) + '\n\n';
     t += `Paragraph one of chapter ${i}. It has two sentences! Does it? Mr. Smith said no.\n${blankLines ? '\n' : ''}Paragraph two of chapter ${i}, with "quotes." And I said: "One more."\n\n`;

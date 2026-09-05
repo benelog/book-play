@@ -36,7 +36,6 @@
 
 | id | 책 | 장 | 원문·삽화 |
 |---|---|---|---|
-| little-prince | The Little Prince | 27 | 영어 번역본은 보호 중, 직접 넣기 (`books/little-prince/text/README.md`) |
 | wizard-of-oz | The Wonderful Wizard of Oz | 24 | 퍼블릭 도메인, Gutenberg #55 / #43936 |
 | alice-in-wonderland | Alice's Adventures in Wonderland | 12 | 퍼블릭 도메인, Gutenberg #11 / #114 |
 | peter-rabbit | The Tales of Peter Rabbit and Friends | 10 | 퍼블릭 도메인, 이야기마다 Gutenberg 전자책 하나 |
@@ -45,8 +44,8 @@
 새 책을 추가하는 방법은 `books/README.md`를 보세요.
 폴더 하나(`books/<id>/`)에 `scenes.js`를 쓰고 `js/library.js`에 등록하면 서재에 나타납니다.
 
-원문과 삽화는 저장소에 포함되어 있지 않습니다. 각 책의 `text/`에 .txt를, `images/`에 `chapter-NN.jpg`를 넣으세요.
-`.gitignore`가 이 파일들을 제외하므로 저장소를 만들어도 올라가지 않습니다. 어린 왕자의 저작권 안내는 `books/little-prince/text/README.md`.
+등록된 책은 모두 퍼블릭 도메인이라 원문(`text/*.txt`, `text/book.js`)과 삽화(`images/chapter-NN.jpg`)를 저장소에 함께 둡니다.
+저작권이 남아 있는 책은 올리지 마세요. 어린 왕자는 영어 번역본이 모두 보호 중이어서 2026-09-06에 사이트에서 뺐습니다.
 
 ## 파일
 
@@ -62,12 +61,11 @@ js/storage.js         localStorage (책별 네임스페이스)
 js/library.js        책 목록(서재)
 books/README.md       책 추가 가이드
 books/_template/      scenes.js 템플릿
-books/little-prince/  어린 왕자: scenes.js, art.js(대체 삽화), text/, images/
 books/wizard-of-oz/   오즈의 마법사: scenes.js, text/, images/ (원문·삽화 내려받기 안내는 각 README)
 books/alice-in-wonderland/, books/peter-rabbit/, books/grimms-fairy-tales/  같은 구조
 _redirects            정적 호스팅용 경로 재작성 규칙
 tools/serve.py        경로 방식 URL을 지원하는 로컬 서버
 tools/embed-text.py   text/*.txt → text/book.js 변환 (start.sh가 자동 실행)
 tools/test.js         node tools/test.js — 파서·판정·모든 책의 장면 데이터 검사
-tools/gallery.html    대체 삽화 미리보기 (?book=<id>)
+tools/gallery.html    대체 삽화(art.js) 미리보기 (?book=<id>, 현재 art.js를 쓰는 책은 없음)
 ```

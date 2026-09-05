@@ -6,23 +6,6 @@
    See books/README.md for the scene data format. */
 window.LP_LIBRARY = [
   {
-    id: 'little-prince',
-    color: '#2b3a75',
-    title: 'The Little Prince',
-    author: 'Antoine de Saint-Exupéry',
-    year: 1943,
-    chapters: 27,
-    ko: '어린 왕자',
-    level: 'Beginner – Intermediate',
-    blurb: 'A pilot stranded in the Sahara meets a small visitor from asteroid B-612.',
-    textNote: 'Original French text and drawings are public domain in Korea; English translations are not. See books/little-prince/text/README.md.',
-    credits: {
-      text: { what: 'English translation by Jeff McNeill (2019)', license: 'CC BY-NC-ND 4.0 — non-commercial, no modification, attribution required', url: 'https://creativecommons.org/licenses/by-nc-nd/4.0/' },
-      images: { what: 'Watercolours by Antoine de Saint-Exupéry (1943), scanned by the site owner', license: 'Public domain in Korea and the EU (author d. 1944); still under copyright in the US until 2039 and in France until 2032', url: 'https://en.wikipedia.org/wiki/The_Little_Prince#Copyright' },
-      original: { what: 'Original French text by Antoine de Saint-Exupéry (1943)', license: 'Public domain in Korea and the EU' }
-    },
-  },
-  {
     id: 'wizard-of-oz',
     color: '#1f6b4a',
     title: 'The Wonderful Wizard of Oz',
