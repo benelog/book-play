@@ -7,8 +7,8 @@ F. D. Bedford(1954년 사망)의 1911년 삽화는 퍼블릭 도메인입니다.
 |---|---|---|
 | chapter-01 | i005 | The Never Never Land (권두화) |
 | chapter-02 | i044 | Peter Flew In |
-| chapter-03 | i078 | The Birds Were Flown |
-| chapter-04 | i090 | "Let Him Keep Who Can" |
+| chapter-03 | i090 | The Birds Were Flown |
+| chapter-04 | i078 | "Let Him Keep Who Can" |
 | chapter-06 | i130 | Peter on Guard |
 | chapter-08 | i148 | Summer Days on the Lagoon |
 | chapter-09 | i166 | "To Die Will Be an Awfully Big Adventure" (8장 끝 장면) |

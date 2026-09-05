@@ -210,7 +210,7 @@ window.LP_SCENES = [
   },
   {
     num: 5, title: 'The Island Come True', ko: '진짜가 된 섬',
-    summary: 'Lost boys, pirates, redskins and beasts go round the island, each hunting the next. Hook tells Smee about the crocodile that swallowed a clock, and Tinker Bell tricks Tootles into shooting the "Wendy bird".',
+    summary: 'Lost boys, pirates, Tiger Lily\'s tribe and beasts go round the island, each hunting the next. Hook tells Smee about the crocodile that swallowed a clock, and Tinker Bell tricks Tootles into shooting the "Wendy bird".',
     summaryKo: '잃어버린 아이들, 해적, 원주민, 짐승들이 서로를 쫓으며 섬을 돕니다. 후크는 스미에게 시계를 삼킨 악어 이야기를 하고, 팅커벨은 투틀스를 속여 "웬디 새"를 쏘게 합니다.',
     scenes: [
       {
@@ -222,7 +222,7 @@ window.LP_SCENES = [
         promptKo: '선장에게 들어 보라고, 시계가 울린다고, 악어가 온다고 말하세요.',
         answers: [{ any: ['tick', 'ticking', 'clock', 'crocodile', 'croc'] }],
         model: 'Captain, listen! The clock — the crocodile is coming!',
-        distractors: ['Captain, the cake is nearly baked.', 'Captain, the redskins are on the warpath.', 'Captain, shall I fetch you a coat?'],
+        distractors: ['Captain, the cake is nearly baked.', 'Captain, Tiger Lily\'s braves are on the warpath.', 'Captain, shall I fetch you a coat?'],
         hints: ['What sound does the crocodile make?', 'Key words: tick, crocodile'],
         hintsKo: ['악어가 내는 소리는?', '핵심 단어: tick, crocodile'],
         reply: { speaker: 'Narrator', line: 'Hook shuddered and fled, and you ran after him. The crocodile passed by, and the boys came out of their trees; but there was danger in the air for Tootles.' }
@@ -351,7 +351,7 @@ window.LP_SCENES = [
         situation: 'You are hiding in the water by Marooners\' Rock. Smee and Starkey have rowed up with Tiger Lily bound hand and foot, to leave her on the rock for the tide. You can imitate any voice — even Hook\'s.',
         situationKo: '마루너스 바위 옆 물속에 숨어 있습니다. 스미와 스타키가 손발이 묶인 타이거 릴리를 배에 태워 왔습니다. 바위에 두고 물이 차오르게 하려는 것입니다. 당신은 누구의 목소리든 흉내 낼 수 있습니다. 후크의 목소리도요.',
         speaker: 'Smee', line: 'Luff, you lubber! Here\'s the rock. Now then, heave her up.',
-        prompt: 'In Hook\'s voice, order them to set the redskin free and cut her bonds.',
+        prompt: 'In Hook\'s voice, order them to set Tiger Lily free and cut her bonds.',
         promptKo: '후크의 목소리로, 원주민 여인을 풀어 주고 밧줄을 끊으라고 명령하세요.',
         answers: [{ any: ['free', 'loose', 'release', 'cut her', 'let her go', 'untie'] }],
         model: 'Ahoy there, you lubbers! Set her free — cut her bonds and let her go.',
@@ -427,7 +427,7 @@ window.LP_SCENES = [
   },
   {
     num: 10, title: 'The Happy Home', ko: '행복한 집',
-    summary: 'The grateful redskins guard the home above, and Peter grows very grand. In the evening the family plays at father and mother, until Wendy asks Peter what his exact feelings for her are.',
+    summary: 'Tiger Lily\'s grateful tribe guards the home above, and Peter grows very grand. In the evening the family plays at father and mother, until Wendy asks Peter what his exact feelings for her are.',
     summaryKo: '고마워하는 원주민들이 땅 위에서 집을 지켜 주고, 피터는 아주 거만해집니다. 저녁이면 가족은 아버지와 어머니 놀이를 하는데, 웬디가 피터에게 자기에게 어떤 감정인지 정확히 묻습니다.',
     scenes: [
       {
@@ -505,13 +505,13 @@ window.LP_SCENES = [
         distractors: ['Peter, come with us, please, just once.', 'Peter, keep the window open for us.', 'Peter, may I keep Tink with me?'],
         hints: ['It is in the cup by his bed.', 'Key word: medicine'],
         hintsKo: ['피터의 침대 옆 잔에 들어 있습니다.', '핵심 단어: medicine'],
-        reply: { speaker: 'Narrator', line: '"Yes," said Peter, and turned away. But above you the redskins had been beaten while you told your story, and when the boys climbed out of their trees they walked straight into the pirates\' arms.' }
+        reply: { speaker: 'Narrator', line: '"Yes," said Peter, and turned away. But above you Tiger Lily\'s braves had been beaten while you told your story, and when the boys climbed out of their trees they walked straight into the pirates\' arms.' }
       }
     ]
   },
   {
     num: 12, title: 'The Children Are Carried Off', ko: '아이들이 끌려가다',
-    summary: 'The pirates have surprised and beaten the redskins. They seize the children one by one as they come up the trees, and Hook creeps down Slightly\'s tree to poison the sleeping Peter\'s medicine.',
+    summary: 'The pirates have surprised and beaten Tiger Lily\'s tribe. They seize the children one by one as they come up the trees, and Hook creeps down Slightly\'s tree to poison the sleeping Peter\'s medicine.',
     summaryKo: '해적들이 원주민을 기습해 물리쳤습니다. 나무에서 올라오는 아이들을 하나씩 붙잡고, 후크는 슬라이틀리의 나무로 내려가 잠든 피터의 약에 독을 넣습니다.',
     scenes: [
       {
@@ -635,7 +635,7 @@ window.LP_SCENES = [
         promptKo: '무엇을 할지 속삭이세요. 그들이 눈을 가린 사이 배에 오르겠다고.',
         answers: [{ any: ['climb', 'aboard', 'on board', 'board', 'over the side'] }],
         model: 'Now, while they hide their eyes, I climb aboard.',
-        distractors: ['Now I shall swim back and fetch the redskins.', 'Now I shall shout to Wendy that I am here.', 'Now I shall tick louder, just for fun.'],
+        distractors: ['Now I shall swim back and fetch Tiger Lily\'s braves.', 'Now I shall shout to Wendy that I am here.', 'Now I shall tick louder, just for fun.'],
         hints: ['Get on the ship, quietly.', 'Key word: aboard'],
         hintsKo: ['배에 조용히 올라타세요.', '핵심 단어: aboard'],
         reply: { speaker: 'Narrator', line: 'You scaled her side as noiseless as a mouse — and only then remembered that you had been ticking. You stopped. But behind you, by chance, the real crocodile was following.' }
@@ -705,7 +705,7 @@ window.LP_SCENES = [
         promptKo: '항로를 말하세요. 곧장 집으로, 런던으로.',
         answers: [{ any: ['london', 'home', 'nursery', 'england'] }],
         model: 'Straight for home, Captain — to London!',
-        distractors: ['Back to the island, Captain; we forgot the redskins.', 'Anywhere you like, Captain; the sea is wide.', 'Let Michael steer, Captain; he is bored.'],
+        distractors: ['Back to the island, Captain; we forgot Tiger Lily.', 'Anywhere you like, Captain; the sea is wide.', 'Let Michael steer, Captain; he is bored.'],
         hints: ['Where is No. 14?', 'Key words: home, London'],
         hintsKo: ['14번지는 어디에 있나요?', '핵심 단어: home, London'],
         reply: { speaker: 'Narrator', line: 'Peter nodded, and it was so. But only Peter knew that he meant to reach the nursery first — and bar the window.' }
