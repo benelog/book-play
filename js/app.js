@@ -216,7 +216,7 @@
         <label><input type="checkbox" id="opt-ko" ${settings.koHelp ? 'checked' : ''}> Show Korean help</label>
       </div>
       <p class="add-note">책을 추가하려면 books/ 아래 폴더를 만들고 js/library.js에 등록하세요 (books/README.md).</p>`;
-    app.querySelectorAll('.plate[data-dir]').forEach(el => probeCover(el.dataset.dir, url => {
+    app.querySelectorAll('.plate[data-dir]').forEach(el => probeCover(ROOT + el.dataset.dir, url => {
       if (!url) return;
       el.classList.remove('empty'); el.innerHTML = `<img src="${url}" alt="">`;
     }));
@@ -229,8 +229,11 @@
   }
 
   // ---------- book boot ----------
+  // Asset paths are anchored at the site root (route.prefix), so they still resolve after the URL
+  // has been rewritten to /books/<id>/chapters/<n> (GitHub Pages 404 redirect, history.pushState).
+  const ROOT = useHash ? '' : (route.prefix || '') + '/';
   async function initBook(book) {
-    BOOK = book; DIR = `books/${book.id}`;
+    BOOK = book; DIR = `${ROOT}books/${book.id}`;
     S.use(book.id);
     delete window.LP_SCENES; delete window.LP_ART; delete window.LP_BOOK; delete window.LP_ROLES;
     await loadScript(`${DIR}/art.js`);
