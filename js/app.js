@@ -266,13 +266,22 @@
     const r = P.parse(text.text);
     if (!r.chapters.length) { console.warn('text/book.js: no chapters found', r.warnings); return; }
     if (S.setChapters(r.chapters)) {
-      chapters = r.chapters; info.source = text.file; info.parserVersion = P.VERSION;
+      chapters = r.chapters; info.source = text.file; info.parserVersion = P.VERSION; info.front = r.front || [];
       if (!info.credit || info.creditAuto) { info.credit = defaultCredit(text.file); info.creditAuto = true; }
       saveInfo();
     }
   }
 
   // ---------- book title screen ----------
+  // A dedication kept from the book's front matter: library entry `dedication: { from: 'To …' }`
+  // names the paragraph it starts with; everything from there to the first chapter is shown.
+  function dedicationHtml() {
+    const d = BOOK.dedication, front = info && info.front;
+    if (!d || !Array.isArray(front)) return '';
+    const i = front.findIndex(p => p.startsWith(d.from));
+    if (i < 0) return '';
+    return `<div class="dedication">${front.slice(i).map(p => `<p>${rich(p)}</p>`).join('')}</div>`;
+  }
   function renderTitle() {
     const done = Object.keys(progress.completed).length;
     const hasText = !!chapters;
@@ -281,6 +290,7 @@
         <h2>${esc(BOOK.title)}</h2>
         <div class="author">${esc(BOOK.author || '')}${BOOK.year ? `, ${BOOK.year}` : ''}${settings.koHelp && BOOK.ko ? ` · ${esc(BOOK.ko)}` : ''}</div>
         ${BOOK.blurb ? `<p class="blurb">${esc(BOOK.blurb)}</p>` : ''}
+        ${dedicationHtml()}
         <div class="menu">
           <button class="btn primary" id="btn-continue">${done || progress.current > 1 ? `Continue · Chapter ${roman(progress.current)}` : 'Start from the beginning'}</button>
           <button class="btn" id="btn-select">Choose a chapter</button>
@@ -358,7 +368,7 @@
       if (!parsed || !parsed.chapters.length) return;
       if (!S.setChapters(parsed.chapters)) { result.innerHTML += '<div class="warn">Not enough storage space: the text could not be saved in localStorage.</div>'; return; }
       chapters = parsed.chapters;
-      info.source = 'pasted text'; info.credit = document.getElementById('credit').value.trim(); info.creditAuto = false; info.parserVersion = P.VERSION; saveInfo();
+      info.source = 'pasted text'; info.credit = document.getElementById('credit').value.trim(); info.creditAuto = false; info.parserVersion = P.VERSION; info.front = parsed.front || []; saveInfo();
       go({ name: 'chapter', num: Math.min(progress.current, TOTAL), mode: 'read' });
     };
   }

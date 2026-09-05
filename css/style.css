@@ -304,3 +304,8 @@ button { cursor: pointer; }
   .book3d { width: 128px; height: 186px; }
   .cover .ctitle { font-size: 14px; }
 }
+
+/* dedication on the title page (front matter kept from the book text) */
+.title-page .dedication { margin: 14px 0 6px; padding: 12px 18px; border-left: 2px solid var(--gold-deep); font-style: italic; color: var(--ink); }
+.title-page .dedication p { margin: 0 0 8px; line-height: 1.55; }
+.title-page .dedication p:last-child { margin-bottom: 0; }

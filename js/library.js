@@ -15,6 +15,7 @@ window.LP_LIBRARY = [
     ko: '어린 왕자',
     level: 'Beginner – Intermediate',
     readOnly: true,
+    dedication: { from: 'To Leon Werth' },   // shown on the title page, taken from the text file
     blurb: 'A pilot stranded in the Sahara meets a small visitor from asteroid B-612.',
     textNote: 'Reading edition only. The English translation is CC BY-NC-ND, so the text is shown exactly as published and there are no dialogue scenes. Saint-Exupéry\'s own drawings are still under copyright in the US, so the pictures here are original.',
     credits: {

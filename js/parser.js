@@ -74,6 +74,23 @@ window.LP_PARSER = (function () {
     while (i < paras.length && (paras[i].split(/\s+/).length < 12 || FRONT.test(paras[i]))) i++;
     return i >= 3 && i < paras.length ? paras.slice(i) : paras;
   }
+  // Front matter (everything before the first chapter heading) is kept as-is for the title page:
+  // blank lines and short lines end a paragraph, so a dedication keeps its own line breaks.
+  function frontParagraphs(lines) {
+    lines = clean(lines).map(l => l.trim());
+    const width = Math.max(0, ...lines.map(l => l.length));
+    const out = []; let buf = [];
+    const flush = () => { if (buf.length) out.push(buf.join(' ')); buf = []; };
+    for (const l of lines) {
+      if (!l) { flush(); continue; }
+      if (l.length < width * 0.6) {
+        if (buf.length && /^[a-z]/.test(l)) { buf.push(l); flush(); }
+        else { flush(); out.push(l); }
+      } else buf.push(l);
+    }
+    flush();
+    return out.filter(p => !FRONT.test(p));
+  }
   function toParagraphs(lines) {
     lines = clean(lines);
     const text = lines.join('\n').replace(/\r/g, '');
@@ -116,6 +133,7 @@ window.LP_PARSER = (function () {
     const lines = text.split('\n');
     const warnings = [];
     let chapters = [];
+    let front = [];
 
     const delimIdx = lines.map((l, i) => (/^\s*={3,}\s*$/.test(l) ? i : -1)).filter(i => i >= 0);
     if (delimIdx.length >= 2) {
@@ -126,12 +144,15 @@ window.LP_PARSER = (function () {
         const body = stripGutenberg(lines.slice(start, end).join('\n')).split('\n');
         chapters.push({ num: k + 1, paragraphs: toParagraphs(body) });
       }
+      front = frontParagraphs(lines.slice(0, delimIdx[0]));
       warnings.push('Split on === delimiter lines.');
     } else {
       let expected = 1;
       let current = null; // { num, lines }
       const found = [];
-      for (const line of lines) {
+      let firstHeading = -1;
+      for (let li = 0; li < lines.length; li++) {
+        const line = lines[li];
         const n = headingNumber(line);
         // A table of contents looks like a run of headings with almost no text between them.
         // When "Chapter 1" turns up again and everything found so far is that thin, start over.
@@ -139,6 +160,7 @@ window.LP_PARSER = (function () {
           found.length = 0; current = null; expected = 1;
         }
         if (n != null && n === expected) {
+          if (n === 1) firstHeading = li;
           if (current) found.push(current);
           current = { num: n, lines: [] };
           expected++;
@@ -148,6 +170,7 @@ window.LP_PARSER = (function () {
       }
       if (current) found.push(current);
       chapters = found.map(c => ({ num: c.num, paragraphs: toParagraphs(c.lines) }));
+      if (firstHeading > 0) front = frontParagraphs(lines.slice(0, firstHeading));
       if (!chapters.length) {
         warnings.push('No chapter headings (Chapter 1, I, 1 …) were found. Put a line with === between chapters.');
       }
@@ -158,7 +181,7 @@ window.LP_PARSER = (function () {
       warnings.push(`Expected ${expected} chapters but found ${chapters.length}. Please check the preview.`);
     }
     const words = chapters.reduce((s, c) => s + c.paragraphs.join(' ').split(/\s+/).length, 0);
-    return { chapters, warnings, words };
+    return { chapters, warnings, words, front };
   }
 
   // Sentence splitter for TTS / highlighting. Keeps closing quotes with the sentence.
@@ -179,5 +202,5 @@ window.LP_PARSER = (function () {
     return out;
   }
 
-  return { parse, sentences, headingNumber, VERSION: 4 };
+  return { parse, sentences, headingNumber, VERSION: 5 };
 })();

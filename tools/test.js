@@ -26,6 +26,7 @@ for (const [name, fn] of Object.entries(styles)) {
   ok(r.chapters[26] && r.chapters[26].paragraphs.length === 2, `${name}: ch27 paragraphs = ${r.chapters[26] && r.chapters[26].paragraphs.length}`);
 }
 ok(P.parse(synth(i => `Chapter ${i}`), 12).warnings.some(w => /Expected 12/.test(w)), 'expected-count warning');
+ok((P.parse(synth(i => `Chapter ${i}`)).front || []).includes('To a friend'), 'front matter kept: ' + JSON.stringify(P.parse(synth(i => `Chapter ${i}`)).front));
 const r2 = P.parse(synth(i => `Chapter ${i}`, false));
 ok(r2.chapters.length === 27 && r2.chapters[0].paragraphs.length === 2, 'single newline paragraphs');
 const r3 = P.parse('Chapter 1\n\nI went out.\nI\n\nChapter 2\n\nText\n\nII\n\nmore');
