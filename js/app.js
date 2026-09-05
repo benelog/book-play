@@ -166,7 +166,7 @@
     T.stop(); clearInterval(typeTimer);
     const render = () => {
       view = next;
-      ({ library: renderLibrary, title: renderTitle, import: renderImport, select: renderSelect, chapter: renderChapter })[view.name]();
+      ({ library: renderLibrary, title: renderTitle, select: renderSelect, chapter: renderChapter })[view.name]();
       if (!fromHistory) syncUrl();
       window.scrollTo(0, 0);
       const pr = document.getElementById('page-right');
@@ -309,20 +309,19 @@
         <div class="menu">
           <button class="btn primary" id="btn-continue">${done || progress.current > 1 ? `Continue · Chapter ${roman(progress.current)}` : 'Start from the beginning'}</button>
           <button class="btn" id="btn-select">Choose a chapter</button>
-          <button class="btn" id="btn-import">${hasText ? 'Load the book text again' : 'Load the book text'}</button>
           <button class="btn" id="btn-reset">Clear progress</button>
         </div>
         <div class="options">
-          ${BOOK.readOnly ? '' : `<label>Answer mode
-            <select id="opt-mode">
-              <option value="type" ${settings.answerMode === 'type' ? 'selected' : ''}>Type the line (free text)</option>
-              <option value="choose" ${settings.answerMode === 'choose' ? 'selected' : ''}>Choose the line (multiple choice)</option>
-            </select></label>`}
+          ${BOOK.readOnly ? '' : `<fieldset class="answer-mode">
+            <legend>Answer mode</legend>
+            <label><input type="radio" name="opt-mode" value="type" ${settings.answerMode === 'type' ? 'checked' : ''}> Type the line <span class="ko-tag">주관식</span></label>
+            <label><input type="radio" name="opt-mode" value="choose" ${settings.answerMode === 'choose' ? 'checked' : ''}> Choose the line <span class="ko-tag">객관식</span></label>
+          </fieldset>`}
           <label><input type="checkbox" id="opt-ko" ${settings.koHelp ? 'checked' : ''}> Show Korean help</label>
           <label><input type="checkbox" id="opt-autoread" ${settings.autoRead ? 'checked' : ''}> Read lines aloud automatically</label>
         </div>
         <div class="status">
-          ${hasText ? `Book text loaded: ${chapters.length} chapters${info.source ? ` from ${esc(DIR)}/text/${esc(info.source)}` : ''}.` : BOOK.readOnly ? 'No book text yet.' : 'No book text yet. The dialogue scenes work without it; reading and text-to-speech need the text.'}
+          ${hasText ? `Book text: ${chapters.length} chapters${info.source ? ` from ${esc(DIR)}/text/${esc(info.source)}` : ''}.` : `No book text found in ${esc(DIR)}/text/ (see books/README.md).`}
           <br>Chapters completed: ${done} / ${TOTAL} · progress is saved in this browser.
           ${T.supported ? '' : '<br>This browser does not support speech synthesis (TTS).'}
         </div>
@@ -336,56 +335,13 @@
     document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
     document.getElementById('btn-continue').onclick = () => go({ name: 'chapter', num: Math.min(progress.current, TOTAL), mode: 'read' });
     document.getElementById('btn-select').onclick = () => go({ name: 'select' });
-    document.getElementById('btn-import').onclick = () => go({ name: 'import' });
     document.getElementById('btn-reset').onclick = () => {
       if (!confirm('Clear all progress for this book? (The book text stays.)')) return;
       progress = S.resetProgress(); renderTitle();
     };
-    if (!BOOK.readOnly) document.getElementById('opt-mode').onchange = (e) => { settings.answerMode = e.target.value; saveSettings(); };
+    if (!BOOK.readOnly) app.querySelectorAll('input[name="opt-mode"]').forEach(r => r.onchange = (e) => { settings.answerMode = e.target.value; saveSettings(); });
     document.getElementById('opt-ko').onchange = (e) => { settings.koHelp = e.target.checked; saveSettings(); };
     document.getElementById('opt-autoread').onchange = (e) => { settings.autoRead = e.target.checked; saveSettings(); };
-  }
-
-  function renderImport() {
-    let parsed = null;
-    bookShell(`<div class="picture cover-plate">${ART.cover()}</div>`, `<div class="panel">
-        <h3>Load the book text</h3>
-        <p>Paste the full text of an English edition (.txt) or pick a file. Chapter headings such as <code>Chapter 1</code>, <code>I</code>, <code>1</code> or <code>Chapter One</code> are detected automatically and split into ${TOTAL} chapters. If the split goes wrong, put a line with <code>===</code> between chapters.</p>
-        <p class="note">The text is stored only in this browser's localStorage and is never sent anywhere. Please check the licence of the edition you use.</p>
-        ${window.LP_BOOK ? `<p class="okmsg">${esc(DIR)}/text/${esc(window.LP_BOOK.file)} is loaded automatically at start-up (via text/book.js). Use this screen only to replace it.</p>` : ''}
-        <textarea id="txt" placeholder="Paste the text here…"></textarea>
-        <div class="row"><label style="flex:1;display:flex;gap:8px;align-items:center;font-size:14px;color:var(--text-dim)">Attribution shown under the text
-          <input type="text" id="credit" value="${esc(info.credit || '')}" placeholder="e.g. Translation by … · licence" style="flex:1;background:var(--night);color:var(--text);border:1px solid var(--frame);padding:4px 8px"></label></div>
-        <div class="row">
-          <input type="file" id="file" accept=".txt,text/plain">
-          <button class="btn" id="btn-parse">Preview chapters</button>
-          <button class="btn primary" id="btn-save" disabled>Save and start</button>
-        </div>
-        <div id="result"></div>
-      </div>`, { actions: '<button class="btn small" id="btn-back">← Title</button>' });
-    const txt = document.getElementById('txt'), result = document.getElementById('result'), btnSave = document.getElementById('btn-save');
-    document.getElementById('btn-back').onclick = () => go({ name: 'title' });
-    document.getElementById('file').onchange = (e) => {
-      const f = e.target.files[0]; if (!f) return;
-      const r = new FileReader();
-      r.onload = () => { txt.value = r.result; doParse(); };
-      r.readAsText(f);
-    };
-    function doParse() {
-      parsed = P.parse(txt.value, TOTAL);
-      const rows = parsed.chapters.map(c => `<div><b>${c.num}.</b> ${esc(plain(c.paragraphs[0]).slice(0, 110))}… <span class="k">(${c.paragraphs.length} paragraphs)</span></div>`).join('');
-      result.innerHTML = `${parsed.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('')}
-        ${parsed.chapters.length ? `<div class="okmsg">${parsed.chapters.length} chapters · about ${parsed.words.toLocaleString()} words</div><div class="preview">${rows}</div>` : ''}`;
-      btnSave.disabled = !parsed.chapters.length;
-    }
-    document.getElementById('btn-parse').onclick = doParse;
-    btnSave.onclick = () => {
-      if (!parsed || !parsed.chapters.length) return;
-      if (!S.setChapters(parsed.chapters)) { result.innerHTML += '<div class="warn">Not enough storage space: the text could not be saved in localStorage.</div>'; return; }
-      chapters = parsed.chapters;
-      info.source = 'pasted text'; info.credit = document.getElementById('credit').value.trim(); info.creditAuto = false; info.parserVersion = P.VERSION; info.front = parsed.front || []; saveInfo();
-      go({ name: 'chapter', num: Math.min(progress.current, TOTAL), mode: 'read' });
-    };
   }
 
   function renderSelect() {
@@ -441,10 +397,9 @@
     const body = document.getElementById('body');
     const ch = chapterText(n);
     if (!ch) {
-      body.innerHTML = `<div class="panel"><h3>No book text yet</h3>
-        <p>To read and listen to this chapter, load the text of an English edition first. The dialogue scenes work without it.</p>
-        <div class="row"><button class="btn primary" id="btn-import">Load the book text</button>${BOOK.readOnly ? '' : '<button class="btn" id="btn-play">Go to the scenes</button>'}</div></div>`;
-      document.getElementById('btn-import').onclick = () => go({ name: 'import' });
+      body.innerHTML = `<div class="panel"><h3>No book text</h3>
+        <p>This book has no text in ${esc(DIR)}/text/ yet, so there is nothing to read or listen to here.${BOOK.readOnly ? '' : ' The dialogue scenes work without it.'}</p>
+        ${BOOK.readOnly ? '' : '<div class="row"><button class="btn" id="btn-play">Go to the scenes</button></div>'}</div>`;
       if (!BOOK.readOnly) document.getElementById('btn-play').onclick = () => go({ name: 'chapter', num: n, mode: 'play' });
       return;
     }
