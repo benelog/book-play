@@ -72,5 +72,5 @@ _redirects            정적 호스팅용 경로 재작성 규칙
 tools/serve.py        경로 방식 URL을 지원하는 로컬 서버
 tools/embed-text.py   text/*.txt → text/book.js 변환 (start.sh가 자동 실행)
 tools/test.js         node tools/test.js — 파서·판정·모든 책의 장면 데이터 검사
-tools/gallery.html    대체 삽화(art.js) 미리보기 (?book=<id>, 예: ?book=little-prince)
+tools/gallery.html    삽화 미리보기 (?book=<id>; images/ 파일 우선, 없으면 art.js)
 ```

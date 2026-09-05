@@ -1,13 +1,32 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Placeholder art preview</title>
-<style>body{background:#1b2447;color:#ece6d6;font-family:serif;margin:20px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}.c{border:3px double #6f7bb0;background:#f7efdd}.c svg{display:block;width:100%}.c div{padding:4px 8px;color:#f2d16b;font-size:14px}</style></head>
-<body><h1 style="font-weight:400" id="h">Placeholder art preview</h1><div class="g" id="g"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Illustration preview</title>
+<style>body{background:#1b2447;color:#ece6d6;font-family:serif;margin:20px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}.c{border:3px double #6f7bb0;background:#f7efdd}.pic{padding:0!important;aspect-ratio:4/3;display:grid;place-items:center;overflow:hidden;color:#5a5a70}.pic img,.pic svg{display:block;width:100%;height:100%;object-fit:cover}.label{padding:4px 8px;color:#f2d16b;font-size:14px}</style></head>
+<body><h1 style="font-weight:400" id="h">Illustration preview</h1><div class="g" id="g"></div>
 <script>
-// usage: tools/gallery.html?book=<id>  (previews books/<id>/art.js)
+// usage: tools/gallery.html?book=<id>  (image files first, art.js as fallback)
 const id = new URLSearchParams(location.search).get('book');
-if (!id) { document.getElementById('g').textContent = 'Usage: gallery.html?book=<id> — previews books/<id>/art.js'; throw new Error('book id required'); }
-document.getElementById('h').textContent = `Placeholder art · books/${id}/art.js`;
+if (!id) { document.getElementById('g').textContent = 'Usage: gallery.html?book=<id>'; throw new Error('book id required'); }
+document.getElementById('h').textContent = `Illustrations · books/${id}`;
 function load(src){return new Promise(r=>{const s=document.createElement('script');s.src=src;s.async=false;s.onload=()=>r(true);s.onerror=()=>r(false);document.head.appendChild(s);});}
 (async()=>{ await load(`../books/${id}/art.js`); await load(`../books/${id}/scenes.js`);
-  const g=document.getElementById('g'); if(!window.LP_ART){g.textContent='This book has no art.js (generic placeholders are used in the game).';return;}
-  g.innerHTML=window.LP_SCENES.map(c=>`<div class="c">${window.LP_ART.chapter(c.num)}<div>${c.num}. ${c.title}</div></div>`).join(''); })();
+  const g=document.getElementById('g');
+  if(!Array.isArray(window.LP_SCENES)){g.textContent='This book has no scene data.';return;}
+  const items=[{num:0,title:'Cover'},...window.LP_SCENES];
+  g.innerHTML=items.map(c=>`<div class="c"><div class="pic" data-num="${c.num}"></div><div class="label">${c.num?`${c.num}. `:''}${c.title}</div></div>`).join('');
+  items.forEach(c=>{
+    const box=g.querySelector(`.pic[data-num="${c.num}"]`);
+    const base=c.num?`chapter-${String(c.num).padStart(2,'0')}`:'cover';
+    const exts=['jpg','jpeg','png','webp','gif','svg']; let i=0;
+    const fallback=()=>{
+      if(window.LP_ART) box.innerHTML=c.num?window.LP_ART.chapter(c.num):window.LP_ART.cover();
+      else box.textContent='No illustration';
+    };
+    const next=()=>{
+      if(i>=exts.length){fallback();return;}
+      const img=new Image(); img.alt=c.title;
+      img.onload=()=>box.replaceChildren(img); img.onerror=next;
+      img.src=`../books/${id}/images/${base}.${exts[i++]}`;
+    };
+    next();
+  });
+})();
 </script></body></html>

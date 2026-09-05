@@ -22,7 +22,7 @@ window.LP_LIBRARY = [
     textNote: 'Reading edition only. The English translation is CC BY-NC-ND, so the text is shown exactly as published and there are no dialogue scenes. Saint-Exupéry\'s own drawings are still under copyright in the US, so the pictures here are original.',
     credits: {
       text: { what: 'English translation by Jeff McNeill (2019), shown unmodified', license: 'CC BY-NC-ND 4.0 — attribution, non-commercial, no derivatives', url: 'https://creativecommons.org/licenses/by-nc-nd/4.0/' },
-      images: { what: 'Original SVG illustrations made for this site (2026)', license: 'Free to reuse; not the author\'s drawings, which are protected in the US until 2039', url: 'https://en.wikipedia.org/wiki/The_Little_Prince#Copyright' },
+      images: { what: 'Original watercolor-and-ink illustrations made for this site (2026)', license: 'AI-generated original compositions; not the author\'s drawings, which are protected in the US until 2039', url: 'https://en.wikipedia.org/wiki/The_Little_Prince#Copyright' },
       original: { what: 'Original French text by Antoine de Saint-Exupéry (1943)', license: 'Public domain in Korea and the EU; protected in the US until 2039 and in France until 2032' }
     },
   },

@@ -1,4 +1,4 @@
-/* Original illustrations for the Little Prince reading edition. */
+/* Lightweight fallback SVGs. The watercolor JPGs in images/ take precedence. */
 (function () {
   'use strict';
 
