@@ -17,7 +17,7 @@ books/<id>/
 
 ```js
 { id: 'wizard-of-oz', title: 'The Wonderful Wizard of Oz', author: 'L. Frank Baum', year: 1900,
-  chapters: 24, ko: '오즈의 마법사', level: 'Beginner',
+  chapters: 24, ko: '오즈의 마법사', level: 'Beginner', difficulty: 'beginner',   // 책장: starter | beginner | intermediate
   blurb: 'A Kansas girl and her dog are carried by a cyclone to the land of Oz.',
   textNote: 'Text and W. W. Denslow illustrations are public domain (Project Gutenberg #43936).' }
 ```

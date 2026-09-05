@@ -1,5 +1,6 @@
 /* Library registry (kept outside books/ so that /books/<id> URLs never collide with a file). Each entry is a folder under books/<id>/ containing:
      scenes.js   (required)  window.LP_SCENES = [...chapters with scenes...]
+     difficulty  'starter' | 'beginner' | 'intermediate' — which shelf the book sits on
      art.js      (optional)  window.LP_ART = { chapter(n) -> svg string, cover() -> svg string }
      text/*.txt  (optional)  the book text; ./start.sh embeds it as text/book.js (window.LP_BOOK)
      images/chapter-NN.jpg   (optional)  illustrations, detected at runtime
@@ -7,6 +8,7 @@
 window.LP_LIBRARY = [
   {
     id: 'little-prince',
+    difficulty: 'beginner',
     color: '#2b3a75',
     title: 'The Little Prince',
     author: 'Antoine de Saint-Exupéry',
@@ -26,6 +28,7 @@ window.LP_LIBRARY = [
   },
   {
     id: 'wizard-of-oz',
+    difficulty: 'beginner',
     color: '#1f6b4a',
     title: 'The Wonderful Wizard of Oz',
     author: 'L. Frank Baum',
@@ -42,6 +45,7 @@ window.LP_LIBRARY = [
   },
   {
     id: 'alice-in-wonderland',
+    difficulty: 'intermediate',
     color: '#7a2a3a',
     title: 'Alice\'s Adventures in Wonderland',
     author: 'Lewis Carroll',
@@ -58,6 +62,7 @@ window.LP_LIBRARY = [
   },
   {
     id: 'peter-rabbit',
+    difficulty: 'beginner',
     color: '#5f7a45',
     title: 'The Tales of Peter Rabbit and Friends',
     author: 'Beatrix Potter',
@@ -74,6 +79,7 @@ window.LP_LIBRARY = [
   },
   {
     id: 'grimms-fairy-tales',
+    difficulty: 'intermediate',
     color: '#4a2a5a',
     title: 'Grimm\'s Fairy Tales',
     author: 'Jacob and Wilhelm Grimm',
@@ -90,6 +96,7 @@ window.LP_LIBRARY = [
   },
   {
     id: 'peter-pan',
+    difficulty: 'intermediate',
     color: '#2f5d7a',
     title: 'Peter and Wendy',
     author: 'J. M. Barrie',
@@ -106,6 +113,7 @@ window.LP_LIBRARY = [
   },
   {
     id: 'red-raincoat',
+    difficulty: 'starter',
     color: '#b8352f',
     title: 'The Red Raincoat',
     author: 'Kiran Kasturia',

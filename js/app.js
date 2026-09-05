@@ -1,4 +1,4 @@
-/* Book Play — learn English with illustrated classics, adventure-game style.
+/* Book Play — learn English with illustrated stories, adventure-game style.
    Library page → book page. Book assets load from books/<id>/ on demand. Works from file:// (no fetch). */
 (function () {
   const SITE = 'Book Play';
@@ -182,14 +182,21 @@
     } else render();
   }
   function topbar(extra = '') {
-    const name = BOOK ? `${esc(BOOK.title)} <small>${SITE}</small>` : `${SITE} <small>learn English with illustrated classics</small>`;
+    const name = BOOK ? `${esc(BOOK.title)} <small>${SITE}</small>` : `${SITE} <small>learn English with illustrated stories</small>`;
     return `<div class="topbar"><h1>${name}</h1><div class="actions">${extra}</div></div>`;
   }
 
   // ---------- library ----------
+  // One shelf per difficulty; a book's `difficulty` in js/library.js picks the shelf.
+  const TIERS = [
+    { key: 'starter', en: 'Starter', sub: 'picture books · a few lines a page', ko: '입문' },
+    { key: 'beginner', en: 'Beginner', sub: 'short chapters · simple sentences', ko: '초급' },
+    { key: 'intermediate', en: 'Intermediate', sub: 'longer chapters · richer vocabulary', ko: '중급' },
+    { key: 'other', en: 'More books', sub: '', ko: '기타' }
+  ];
   function renderLibrary() {
     document.title = SITE;
-    const books = LIBRARY.map(b => {
+    const bookHtml = (b) => {
       const p = S.getProgress(b.id), done = Object.keys(p.completed).length, n = b.chapters || '?';
       const pct = n ? Math.round(100 * done / n) : 0;
       return `<div class="slot">
@@ -205,13 +212,21 @@
         </button>
         <span class="label book-under">${settings.koHelp && b.ko ? esc(b.ko) + ' · ' : ''}${done} / ${n}</span>
       </div>`;
+    };
+    const shelves = TIERS.map(t => {
+      const list = LIBRARY.filter(b => (TIERS.some(x => x.key === b.difficulty) ? b.difficulty : 'other') === t.key);
+      if (!list.length) return '';
+      return `<section class="shelf-row">
+        <h3 class="shelf-label"><span class="tier">${esc(t.en)}</span>${settings.koHelp && t.ko ? `<span class="tier-ko">${esc(t.ko)}</span>` : ''}${t.sub ? `<span class="tier-sub">${esc(t.sub)}</span>` : ''}</h3>
+        <div class="shelf">${list.map(bookHtml).join('')}<div class="slot empty"></div></div>
+      </section>`;
     }).join('');
     app.innerHTML = `${topbar()}
       <div class="library-hero">
         <h2>${SITE}</h2>
         <p>Take a book from the shelf. Read a chapter, listen to it, then step into the story and say the right line to turn the page.</p>
       </div>
-      <div class="shelf" id="shelf">${books}<div class="slot empty"></div></div>
+      ${shelves}
       <div class="library-foot">
         <label><input type="checkbox" id="opt-ko" ${settings.koHelp ? 'checked' : ''}> Show Korean help</label>
       </div>

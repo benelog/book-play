@@ -1,6 +1,6 @@
 # Book Play
 
-삽화가 있는 고전 원서로 영어를 배우는 텍스트 어드벤처입니다. 첫 화면(서재)에서 책을 고르면,
+삽화가 있는 영어 책(고전과 그림책)으로 영어를 배우는 텍스트 어드벤처입니다. 서재는 입문(Starter)·초급(Beginner)·중급(Intermediate) 책장으로 나뉩니다. 첫 화면(서재)에서 책을 고르면,
 1980년대 일본 PC 어드벤처처럼 위에는 삽화, 아래에는 메시지 창이 나오고, 상황에 맞는 영어 대사를 말하면 다음 장면으로 넘어갑니다.
 
 ## 실행
@@ -16,7 +16,7 @@
 
 ## 구성
 
-- **서재(Library)** — 책장 위에 책 표지가 놓여 있습니다. 표지 그림은 `images/cover.jpg`가 있으면 그것을, 없으면 `chapter-01.jpg`를 씁니다. 책을 꺼내면 펼친 책(왼쪽 삽화, 오른쪽 본문) 화면으로 넘어가고, 화면 전환 때 오른쪽 페이지가 넘어가는 애니메이션이 있습니다.
+- **서재(Library)** — 난이도별 책장(`js/library.js`의 `difficulty`: starter · beginner · intermediate) 위에 책 표지가 놓여 있습니다. 표지 그림은 `images/cover.jpg`가 있으면 그것을, 없으면 `chapter-01.jpg`를 씁니다. 책을 꺼내면 펼친 책(왼쪽 삽화, 오른쪽 본문) 화면으로 넘어가고, 화면 전환 때 오른쪽 페이지가 넘어가는 애니메이션이 있습니다.
 - **출처와 라이선스** — 책마다 제목 페이지 아래 "Sources & licences"에 원문과 삽화의 출처·라이선스를 표시합니다. 내용은 `js/library.js`의 `credits` 항목입니다.
 - **URL** — 경로 방식입니다: `/books/<id>` (책 제목 화면), `/books/<id>/chapters/<n>` (읽기), `/books/<id>/chapters/<n>/play` (대화 장면).
   `start.sh`의 서버(`tools/serve.py`)가 이 경로를 `index.html`로 연결합니다. 정적 호스팅에서는 `_redirects`(Cloudflare Pages·Netlify 형식)처럼 `/books/*`를 `index.html`로 보내는 규칙이 필요합니다.
