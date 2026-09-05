@@ -68,5 +68,21 @@ window.LP_LIBRARY = [
       text: { what: 'Project Gutenberg eBook #2591, Edgar Taylor & Marian Edwardes translation; 12 tales selected', license: 'Public domain', url: 'https://www.gutenberg.org/ebooks/2591' },
       images: { what: 'Illustrations by Arthur Rackham (1909), from Wikimedia Commons', license: 'Public domain (Rackham d. 1939)', url: 'https://commons.wikimedia.org/wiki/Category:Arthur_Rackham' }
     },
+  },
+  {
+    id: 'peter-pan',
+    color: '#2f5d7a',
+    title: 'Peter and Wendy',
+    author: 'J. M. Barrie',
+    year: 1911,
+    chapters: 17,
+    ko: '피터 팬',
+    level: 'Intermediate',
+    blurb: 'A boy who would not grow up flies in at the nursery window, and Wendy, John and Michael follow him to the Neverland of lost boys, pirates and one ticking crocodile.',
+    textNote: 'Text and F. D. Bedford\'s illustrations are public domain worldwide. Project Gutenberg #26654.',
+    credits: {
+      text: { what: 'Project Gutenberg eBook #26654 (pg26654.txt)', license: 'Public domain (J. M. Barrie d. 1937; published 1911)', url: 'https://www.gutenberg.org/ebooks/26654' },
+      images: { what: 'Illustrations by F. D. Bedford (1911), from Project Gutenberg eBook #26654', license: 'Public domain (Bedford d. 1954)', url: 'https://www.gutenberg.org/ebooks/26654' }
+    },
   }
 ];
