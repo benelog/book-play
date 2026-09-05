@@ -39,7 +39,7 @@ window.LP_LIBRARY = [
     blurb: 'A cyclone carries Dorothy and Toto to the Land of Oz, where a Scarecrow, a Tin Woodman and a Lion join her on the yellow brick road.',
     textNote: 'Text and W. W. Denslow\'s illustrations are public domain worldwide. Project Gutenberg #55 (text) and #43936 (illustrated).',
     credits: {
-      text: { what: 'Project Gutenberg eBook #55 (pg55.txt)', license: 'Public domain (L. Frank Baum d. 1919)', url: 'https://www.gutenberg.org/ebooks/55' },
+      text: { what: 'Project Gutenberg eBook #55', license: 'Public domain (L. Frank Baum d. 1919)', url: 'https://www.gutenberg.org/ebooks/55' },
       images: { what: 'Illustrations by W. W. Denslow (1900), from Project Gutenberg eBook #43936', license: 'Public domain (Denslow d. 1915)', url: 'https://www.gutenberg.org/ebooks/43936' }
     },
   },
@@ -56,7 +56,7 @@ window.LP_LIBRARY = [
     blurb: 'Alice follows a White Rabbit down a hole into a world of mad tea-parties, grinning cats and a Queen who shouts "Off with her head!"',
     textNote: 'Text and John Tenniel\'s illustrations are public domain worldwide. Project Gutenberg #11 (text with pictures) and #114 (illustrations).',
     credits: {
-      text: { what: 'Project Gutenberg eBook #11 (pg11.txt)', license: 'Public domain (Lewis Carroll d. 1898)', url: 'https://www.gutenberg.org/ebooks/11' },
+      text: { what: 'Project Gutenberg eBook #11', license: 'Public domain (Lewis Carroll d. 1898)', url: 'https://www.gutenberg.org/ebooks/11' },
       images: { what: 'Illustrations by John Tenniel (1865), from Project Gutenberg eBooks #11 / #114', license: 'Public domain (Tenniel d. 1914)', url: 'https://www.gutenberg.org/ebooks/114' }
     },
   },
@@ -107,7 +107,7 @@ window.LP_LIBRARY = [
     blurb: 'A boy who would not grow up flies in at the nursery window, and Wendy, John and Michael follow him to the Neverland of lost boys, pirates and one ticking crocodile.',
     textNote: 'Text and F. D. Bedford\'s illustrations are public domain worldwide. Project Gutenberg #26654.',
     credits: {
-      text: { what: 'Project Gutenberg eBook #26654 (pg26654.txt)', license: 'Public domain (J. M. Barrie d. 1937; published 1911)', url: 'https://www.gutenberg.org/ebooks/26654' },
+      text: { what: 'Project Gutenberg eBook #26654', license: 'Public domain (J. M. Barrie d. 1937; published 1911)', url: 'https://www.gutenberg.org/ebooks/26654' },
       images: { what: 'Illustrations by F. D. Bedford (1911), from Project Gutenberg eBook #26654', license: 'Public domain (Bedford d. 1954)', url: 'https://www.gutenberg.org/ebooks/26654' }
     },
   },

@@ -269,10 +269,10 @@
     go(route.chapter ? { name: 'chapter', num: Math.min(Math.max(1, route.chapter), TOTAL), mode: route.mode } : { name: 'title' }, true);
   }
 
-  function defaultCredit(file) {
-    if (/mcneill/i.test(file)) return 'English translation by Jeff McNeill · CC BY-NC-ND 4.0 · text shown unmodified';
-    if (/gutenberg|^pg\d+/i.test(file)) return 'Text from Project Gutenberg (public domain)';
-    return 'Source: ' + file;
+  // Attribution line under the reader text: the library's text credit (what · licence), else nothing.
+  function defaultCredit() {
+    const c = BOOK && BOOK.credits && BOOK.credits.text;
+    return c ? `${c.what} · ${String(c.license).split(' — ')[0]}` : '';
   }
   function autoImport() {
     const text = window.LP_BOOK;
@@ -282,7 +282,7 @@
     if (!r.chapters.length) { console.warn('text/book.js: no chapters found', r.warnings); return; }
     if (S.setChapters(r.chapters)) {
       chapters = r.chapters; info.source = text.file; info.parserVersion = P.VERSION; info.front = r.front || [];
-      if (!info.credit || info.creditAuto) { info.credit = defaultCredit(text.file); info.creditAuto = true; }
+      if (!info.credit || info.creditAuto) { info.credit = defaultCredit(); info.creditAuto = true; }
       saveInfo();
     }
   }
@@ -321,8 +321,7 @@
           <label><input type="checkbox" id="opt-autoread" ${settings.autoRead ? 'checked' : ''}> Read lines aloud automatically</label>
         </div>
         <div class="status">
-          ${hasText ? `Book text: ${chapters.length} chapters${info.source ? ` from ${esc(DIR)}/text/${esc(info.source)}` : ''}.` : `No book text found in ${esc(DIR)}/text/ (see books/README.md).`}
-          <br>Chapters completed: ${done} / ${TOTAL} · progress is saved in this browser.
+          ${hasText ? '' : `No book text found in ${esc(DIR)}/text/ (see books/README.md).<br>`}Chapters completed: ${done} / ${TOTAL} · progress is saved in this browser.
           ${T.supported ? '' : '<br>This browser does not support speech synthesis (TTS).'}
         </div>
         ${creditsHtml(BOOK)}
@@ -416,7 +415,7 @@
         <label>Speed <input type="range" id="rate" min="0.6" max="1.4" step="0.05" value="${settings.rate}"><span id="rate-v">${settings.rate}</span></label>
       </div>
       <div class="reader-text" id="reader-text">${html}</div>
-      ${info.credit ? `<div class="credit">${esc(info.credit)}</div>` : ''}
+      ${(info.creditAuto ? defaultCredit() : info.credit) ? `<div class="credit">${esc(info.creditAuto ? defaultCredit() : info.credit)}</div>` : ''}
       <div class="reader-foot">
         <span class="scene-progress">${sentences.length} sentences · click a sentence to start reading from there</span>
         ${BOOK.readOnly
