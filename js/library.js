@@ -6,6 +6,24 @@
    See books/README.md for the scene data format. */
 window.LP_LIBRARY = [
   {
+    id: 'little-prince',
+    color: '#2b3a75',
+    title: 'The Little Prince',
+    author: 'Antoine de Saint-Exupéry',
+    year: 1943,
+    chapters: 27,
+    ko: '어린 왕자',
+    level: 'Beginner – Intermediate',
+    readOnly: true,
+    blurb: 'A pilot stranded in the Sahara meets a small visitor from asteroid B-612.',
+    textNote: 'Reading edition only. The English translation is CC BY-NC-ND, so the text is shown exactly as published and there are no dialogue scenes. Saint-Exupéry\'s own drawings are still under copyright in the US, so the pictures here are original.',
+    credits: {
+      text: { what: 'English translation by Jeff McNeill (2019), shown unmodified', license: 'CC BY-NC-ND 4.0 — attribution, non-commercial, no derivatives', url: 'https://creativecommons.org/licenses/by-nc-nd/4.0/' },
+      images: { what: 'Original SVG illustrations made for this site (2026)', license: 'Free to reuse; not the author\'s drawings, which are protected in the US until 2039', url: 'https://en.wikipedia.org/wiki/The_Little_Prince#Copyright' },
+      original: { what: 'Original French text by Antoine de Saint-Exupéry (1943)', license: 'Public domain in Korea and the EU; protected in the US until 2039 and in France until 2032' }
+    },
+  },
+  {
     id: 'wizard-of-oz',
     color: '#1f6b4a',
     title: 'The Wonderful Wizard of Oz',
@@ -83,6 +101,22 @@ window.LP_LIBRARY = [
     credits: {
       text: { what: 'Project Gutenberg eBook #26654 (pg26654.txt)', license: 'Public domain (J. M. Barrie d. 1937; published 1911)', url: 'https://www.gutenberg.org/ebooks/26654' },
       images: { what: 'Illustrations by F. D. Bedford (1911), from Project Gutenberg eBook #26654', license: 'Public domain (Bedford d. 1954)', url: 'https://www.gutenberg.org/ebooks/26654' }
+    },
+  },
+  {
+    id: 'red-raincoat',
+    color: '#b8352f',
+    title: 'The Red Raincoat',
+    author: 'Kiran Kasturia',
+    year: 2015,
+    chapters: 9,
+    ko: '빨간 비옷',
+    level: 'Beginner (StoryWeaver Level 1)',
+    blurb: 'Manu has a new raincoat. He can\'t wait to wear it, but the rain makes him wait... and wait... and wait.',
+    textNote: 'A modern picture book released under CC BY 4.0 by Pratham Books on StoryWeaver, the most-read English title there. One page per chapter; the text is unchanged.',
+    credits: {
+      text: { what: 'The Red Raincoat, written by Kiran Kasturia, © Pratham Books 2015, from StoryWeaver', license: 'CC BY 4.0 — split into one page per chapter, text unchanged', url: 'https://storyweaver.org.in/en/stories/369-the-red-raincoat' },
+      images: { what: 'Illustrations by Zainab Tambawalla, © Pratham Books 2015, from StoryWeaver', license: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' }
     },
   }
 ];

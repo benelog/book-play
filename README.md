@@ -21,7 +21,8 @@
 - **URL** — 경로 방식입니다: `/books/<id>` (책 제목 화면), `/books/<id>/chapters/<n>` (읽기), `/books/<id>/chapters/<n>/play` (대화 장면).
   `start.sh`의 서버(`tools/serve.py`)가 이 경로를 `index.html`로 연결합니다. 정적 호스팅에서는 `_redirects`(Cloudflare Pages·Netlify 형식)처럼 `/books/*`를 `index.html`로 보내는 규칙이 필요합니다.
   `index.html`을 file://로 직접 열면 같은 경로를 `#` 뒤에 붙입니다: `index.html#/books/<id>/chapters/3`.
-- **원문 읽기(Read)** — 장별 영어 원문과 TTS(브라우저 내장 음성 합성). 문장 단위로 강조되며, 문장을 클릭하면 그 문장부터 읽습니다.
+- **원문 읽기(Read)** — 장별 영어 원문과 TTS(브라우저 내장 음성 합성). 문장 단위로 강조되며, 문장을 클릭하면 그 문장부터 읽습니다. Gutenberg 텍스트의 `_밑줄_` 이탤릭 표기는 기울임체로 표시하고 음성에서는 뺍니다.
+  `readOnly: true`인 책은 Play 탭이 없고, 읽기 화면의 "Finished" 버튼으로 장을 완료합니다.
   Chrome의 Google 네트워크 음성은 일시 정지가 바로 반영되지 않을 수 있습니다. 정지 버튼과 문장 클릭은 항상 동작합니다.
 - **대화 장면(Play)** — 상황 설명과 상대의 대사가 영어로 나오면 알맞은 대사를 답합니다.
   - **Type(주관식)**: 영어로 직접 입력. 핵심 단어 기반으로 판정하며 오타 한 글자는 허용합니다. 두 번 틀리면 힌트, 세 번 틀리면 정답 예시를 보여 주고 따라 입력하게 합니다.
@@ -36,17 +37,19 @@
 
 | id | 책 | 장 | 원문·삽화 |
 |---|---|---|---|
+| little-prince | The Little Prince | 27 | 읽기 전용. McNeill 영역본(CC BY-NC-ND) 무수정 게시, 삽화는 자체 제작 SVG(`art.js`) |
 | wizard-of-oz | The Wonderful Wizard of Oz | 24 | 퍼블릭 도메인, Gutenberg #55 / #43936 |
 | alice-in-wonderland | Alice's Adventures in Wonderland | 12 | 퍼블릭 도메인, Gutenberg #11 / #114 |
 | peter-rabbit | The Tales of Peter Rabbit and Friends | 10 | 퍼블릭 도메인, 이야기마다 Gutenberg 전자책 하나 |
 | grimms-fairy-tales | Grimm's Fairy Tales | 12 | 퍼블릭 도메인, Gutenberg #2591 + Rackham 삽화 |
 | peter-pan | Peter and Wendy | 17 | 퍼블릭 도메인, Gutenberg #26654 + Bedford 삽화 |
+| red-raincoat | The Red Raincoat | 9 | CC BY 4.0, Pratham Books · StoryWeaver #369 (한 쪽이 한 장) |
 
 새 책을 추가하는 방법은 `books/README.md`를 보세요.
 폴더 하나(`books/<id>/`)에 `scenes.js`를 쓰고 `js/library.js`에 등록하면 서재에 나타납니다.
 
 등록된 책은 모두 퍼블릭 도메인이라 원문(`text/*.txt`, `text/book.js`)과 삽화(`images/chapter-NN.jpg`)를 저장소에 함께 둡니다.
-저작권이 남아 있는 책은 올리지 마세요. 어린 왕자는 영어 번역본이 모두 보호 중이어서 2026-09-06에 사이트에서 뺐습니다.
+저작권이 남아 있는 책은 올리지 마세요. 어린 왕자는 영어 번역본이 모두 보호 중이라 게임 장면 없이 **읽기 전용**(`readOnly: true`)으로만 제공합니다. CC BY-NC-ND 조건에 따라 번역문을 고치지 않고, 사이트는 비영리로 유지해야 합니다.
 
 ## 파일
 
@@ -62,8 +65,9 @@ js/storage.js         localStorage (책별 네임스페이스)
 js/library.js        책 목록(서재)
 books/README.md       책 추가 가이드
 books/_template/      scenes.js 템플릿
+books/little-prince/  어린 왕자(읽기 전용): scenes.js(장 제목만 사용), art.js(SVG 삽화), text/
 books/wizard-of-oz/   오즈의 마법사: scenes.js, text/, images/ (원문·삽화 내려받기 안내는 각 README)
-books/alice-in-wonderland/, books/peter-rabbit/, books/grimms-fairy-tales/, books/peter-pan/  같은 구조
+books/alice-in-wonderland/, books/peter-rabbit/, books/grimms-fairy-tales/, books/peter-pan/, books/red-raincoat/  같은 구조
 _redirects            정적 호스팅용 경로 재작성 규칙
 tools/serve.py        경로 방식 URL을 지원하는 로컬 서버
 tools/embed-text.py   text/*.txt → text/book.js 변환 (start.sh가 자동 실행)

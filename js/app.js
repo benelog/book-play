@@ -247,6 +247,7 @@
     }
     SCENES = window.LP_SCENES; TOTAL = SCENES.length; ROLES = window.LP_ROLES || {};
     ART = window.LP_ART || genericArt(book);
+    if (book.readOnly && route.mode === 'play') route.mode = 'read';
     chapters = S.getChapters(); progress = S.getProgress(); info = S.getBookInfo();
     document.title = `${book.title} · ${SITE}`;
     autoImport();
@@ -254,6 +255,7 @@
   }
 
   function defaultCredit(file) {
+    if (/mcneill/i.test(file)) return 'English translation by Jeff McNeill · CC BY-NC-ND 4.0 · text shown unmodified';
     if (/gutenberg|^pg\d+/i.test(file)) return 'Text from Project Gutenberg (public domain)';
     return 'Source: ' + file;
   }
@@ -286,16 +288,16 @@
           <button class="btn" id="btn-reset">Clear progress</button>
         </div>
         <div class="options">
-          <label>Answer mode
+          ${BOOK.readOnly ? '' : `<label>Answer mode
             <select id="opt-mode">
               <option value="type" ${settings.answerMode === 'type' ? 'selected' : ''}>Type the line (free text)</option>
               <option value="choose" ${settings.answerMode === 'choose' ? 'selected' : ''}>Choose the line (multiple choice)</option>
-            </select></label>
+            </select></label>`}
           <label><input type="checkbox" id="opt-ko" ${settings.koHelp ? 'checked' : ''}> Show Korean help</label>
           <label><input type="checkbox" id="opt-autoread" ${settings.autoRead ? 'checked' : ''}> Read lines aloud automatically</label>
         </div>
         <div class="status">
-          ${hasText ? `Book text loaded: ${chapters.length} chapters${info.source ? ` from ${esc(DIR)}/text/${esc(info.source)}` : ''}.` : 'No book text yet. The dialogue scenes work without it; reading and text-to-speech need the text.'}
+          ${hasText ? `Book text loaded: ${chapters.length} chapters${info.source ? ` from ${esc(DIR)}/text/${esc(info.source)}` : ''}.` : BOOK.readOnly ? 'No book text yet.' : 'No book text yet. The dialogue scenes work without it; reading and text-to-speech need the text.'}
           <br>Chapters completed: ${done} / ${TOTAL} · progress is saved in this browser.
           ${T.supported ? '' : '<br>This browser does not support speech synthesis (TTS).'}
         </div>
@@ -314,7 +316,7 @@
       if (!confirm('Clear all progress for this book? (The book text stays.)')) return;
       progress = S.resetProgress(); renderTitle();
     };
-    document.getElementById('opt-mode').onchange = (e) => { settings.answerMode = e.target.value; saveSettings(); };
+    if (!BOOK.readOnly) document.getElementById('opt-mode').onchange = (e) => { settings.answerMode = e.target.value; saveSettings(); };
     document.getElementById('opt-ko').onchange = (e) => { settings.koHelp = e.target.checked; saveSettings(); };
     document.getElementById('opt-autoread').onchange = (e) => { settings.autoRead = e.target.checked; saveSettings(); };
   }
@@ -346,7 +348,7 @@
     };
     function doParse() {
       parsed = P.parse(txt.value, TOTAL);
-      const rows = parsed.chapters.map(c => `<div><b>${c.num}.</b> ${esc(c.paragraphs[0].slice(0, 110))}… <span class="k">(${c.paragraphs.length} paragraphs)</span></div>`).join('');
+      const rows = parsed.chapters.map(c => `<div><b>${c.num}.</b> ${esc(plain(c.paragraphs[0]).slice(0, 110))}… <span class="k">(${c.paragraphs.length} paragraphs)</span></div>`).join('');
       result.innerHTML = `${parsed.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('')}
         ${parsed.chapters.length ? `<div class="okmsg">${parsed.chapters.length} chapters · about ${parsed.words.toLocaleString()} words</div><div class="preview">${rows}</div>` : ''}`;
       btnSave.disabled = !parsed.chapters.length;
@@ -378,10 +380,10 @@
     bookShell(`<div class="chapter-num">CHAPTER ${roman(n)}</div><div class="picture" id="picture"></div><div class="caption" id="picture-caption"></div>`,
       `<div class="chapter-head">
         <div><div class="num">CHAPTER ${roman(n)} · ${esc(BOOK.title)}</div><div class="title">${esc(m.title)}${settings.koHelp && m.ko ? `<span class="ko">${esc(m.ko)}</span>` : ''}</div></div>
-        <div class="tabs">
+        ${BOOK.readOnly ? '' : `<div class="tabs">
           <button class="btn small ${view.mode === 'read' ? 'active' : ''}" id="tab-read">Read</button>
           <button class="btn small ${view.mode === 'play' ? 'active' : ''}" id="tab-play">Play</button>
-        </div>
+        </div>`}
       </div>
       <div id="body"></div>`,
       { actions: '<button class="btn small" id="btn-select">Contents</button><button class="btn small" id="btn-home">Title</button><button class="btn small" id="btn-lib">Library</button>', folioLeft: String(n), folioRight: esc(m.title).toUpperCase() });
@@ -389,27 +391,41 @@
     document.getElementById('btn-select').onclick = () => go({ name: 'select' });
     document.getElementById('btn-home').onclick = () => go({ name: 'title' });
     document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
-    document.getElementById('tab-read').onclick = () => go({ name: 'chapter', num: n, mode: 'read' });
-    document.getElementById('tab-play').onclick = () => go({ name: 'chapter', num: n, mode: 'play' });
+    if (BOOK.readOnly) view.mode = 'read';
+    else {
+      document.getElementById('tab-read').onclick = () => go({ name: 'chapter', num: n, mode: 'read' });
+      document.getElementById('tab-play').onclick = () => go({ name: 'chapter', num: n, mode: 'play' });
+    }
     if (view.mode === 'read') renderReader(n); else renderPlay(n);
   }
 
   // ---------- reading + TTS ----------
+  // Gutenberg plain text marks italics with _underscores_. Render them as <em>; speak them without the marks.
+  const plain = (s) => String(s).replace(/_/g, '');
+  const rich = (s) => esc(s).replace(/_([^_]+)_/g, '<em>$1</em>').replace(/_/g, '');
+  // Sentences of one paragraph, each carrying its italic state so a span that crosses a sentence boundary still closes.
+  function richSentences(paragraph) {
+    let open = false;
+    return P.sentences(paragraph).map(s => {
+      const marked = (open ? '_' : '') + s;
+      open = (marked.split('_').length - 1) % 2 === 1;
+      return { text: plain(s), html: rich(open ? marked + '_' : marked) };
+    });
+  }
   function renderReader(n) {
     const body = document.getElementById('body');
     const ch = chapterText(n);
     if (!ch) {
       body.innerHTML = `<div class="panel"><h3>No book text yet</h3>
         <p>To read and listen to this chapter, load the text of an English edition first. The dialogue scenes work without it.</p>
-        <div class="row"><button class="btn primary" id="btn-import">Load the book text</button><button class="btn" id="btn-play">Go to the scenes</button></div></div>`;
+        <div class="row"><button class="btn primary" id="btn-import">Load the book text</button>${BOOK.readOnly ? '' : '<button class="btn" id="btn-play">Go to the scenes</button>'}</div></div>`;
       document.getElementById('btn-import').onclick = () => go({ name: 'import' });
-      document.getElementById('btn-play').onclick = () => go({ name: 'chapter', num: n, mode: 'play' });
+      if (!BOOK.readOnly) document.getElementById('btn-play').onclick = () => go({ name: 'chapter', num: n, mode: 'play' });
       return;
     }
     const sentences = [];
     const html = ch.paragraphs.map(p => {
-      const ss = P.sentences(p);
-      return '<p>' + ss.map(s => { const i = sentences.push(s) - 1; return `<span class="s" data-i="${i}">${esc(s)}</span> `; }).join('') + '</p>';
+      return '<p>' + richSentences(p).map(s => { const i = sentences.push(s.text) - 1; return `<span class="s" data-i="${i}">${s.html}</span> `; }).join('') + '</p>';
     }).join('');
     body.innerHTML = `<div class="reader">
       <div class="reader-controls">
@@ -423,7 +439,9 @@
       ${info.credit ? `<div class="credit">${esc(info.credit)}</div>` : ''}
       <div class="reader-foot">
         <span class="scene-progress">${sentences.length} sentences · click a sentence to start reading from there</span>
-        <button class="btn primary" id="btn-to-play">Go to the scenes →</button>
+        ${BOOK.readOnly
+          ? `<button class="btn primary" id="btn-to-play">${n < TOTAL ? 'Finished · next chapter →' : 'Finished · back to the library'}</button>`
+          : '<button class="btn primary" id="btn-to-play">Go to the scenes →</button>'}
       </div></div>`;
     const btnPlay = document.getElementById('tts-play'), btnPause = document.getElementById('tts-pause'), btnStop = document.getElementById('tts-stop');
     const voiceSel = document.getElementById('voice'), textEl = document.getElementById('reader-text');
@@ -458,7 +476,17 @@
     };
     btnStop.onclick = () => { T.stop(); setButtons(false); textEl.querySelectorAll('.s.now').forEach(el => el.classList.remove('now')); };
     textEl.querySelectorAll('.s').forEach(el => el.onclick = () => play(+el.dataset.i));
-    document.getElementById('btn-to-play').onclick = () => { progress.read[n] = true; save(); go({ name: 'chapter', num: n, mode: 'play' }); };
+    document.getElementById('btn-to-play').onclick = () => {
+      progress.read[n] = true;
+      if (BOOK.readOnly) {
+        progress.completed[n] = true;
+        if (n >= progress.current && n < TOTAL) progress.current = n + 1;
+        save();
+        if (n < TOTAL) go({ name: 'chapter', num: n + 1, mode: 'read' }); else location.href = libraryUrl();
+        return;
+      }
+      save(); go({ name: 'chapter', num: n, mode: 'play' });
+    };
   }
 
   // ---------- adventure scenes ----------

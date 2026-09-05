@@ -22,6 +22,8 @@ books/<id>/
   textNote: 'Text and W. W. Denslow illustrations are public domain (Project Gutenberg #43936).' }
 ```
 
+`readOnly: true`를 붙이면 게임(Play) 없이 읽기 화면만 제공합니다. 번역본처럼 수정이 금지된 텍스트(CC BY-NC-ND 등)에 쓰세요. 이때도 `scenes.js`는 장 제목(`title`, `ko`) 때문에 필요하고, 장면은 표시되지 않습니다.
+
 ## 2. 장면 데이터 (`scenes.js`)
 
 `books/_template/scenes.js` 를 복사해서 시작하세요. 장(chapter) 하나의 형태:
