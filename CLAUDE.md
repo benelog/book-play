@@ -13,9 +13,12 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
 
 ## 깨뜨리면 안 되는 제약
 
-- **`file://`에서 동작해야 합니다.** 빌드도 서버도 없이 `index.html`을 직접 열어도 되어야 하므로 `fetch()`를 쓰지 마세요.
+- **`file://`에서 동작해야 합니다.** 빌드도 서버도 없이 `index.html`을 직접 열어도 되어야 하므로 로컬 파일에 `fetch()`를 쓰지 마세요.
   텍스트는 `text/book.js`(=`tools/embed-text.py`가 `text/*.txt`를 미리 박아 넣은 JS)로, 이미지 존재 확인은 `Image` `onerror`로 합니다.
   URL도 `file://`에서는 경로 대신 해시(`index.html#/books/<id>/chapters/3`)로 떨어집니다.
+  예외는 `js/dict.js`의 외부 사전 API(CORS 허용, `file://`에서도 응답)와 `js/pwa.js`의 오프라인 저장(http(s) 전용, `PWA.supported`로 가드)입니다. 사전 API가 죽어 있어도 팝오버는 링크로 대체되어야 합니다.
+- **`sw.js`의 `VERSION`을 올리세요** — `index.html`·`css/`·`js/`·매니페스트·아이콘 등 앱 껍데기 파일을 바꿔 배포할 때. 안 올리면 온라인에서는 network-first라 새 파일이 보이지만, 미리 캐시된 껍데기는 갱신되지 않고 "새 버전" 토스트도 뜨지 않습니다.
+  전역 localStorage 키는 `lp.v1.settings`, `lp.v1.history`(학습 이력), `lp.v1.dict`(사전 캐시), `lp.v1.offline`(오프라인 저장한 책)입니다.
 - **장면 데이터는 자체 저작입니다.** `books/<id>/scenes.js`는 책 본문을 옮긴 게 아니라 직접 쓴 상황·대사이고, 원문 인용은 몇 단어 수준으로 제한합니다.
   객관식 오답(distractors)은 장면마다 3개씩 손으로 씁니다.
 - **안내 문구는 영어가 기본**이고, `*Ko` 필드에 한국어 도움말을 넣어 "Show Korean help"로 토글합니다.
@@ -42,6 +45,7 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
 
 ## 자산 만들기
 
+- **앱 아이콘**: 원본은 `icons/icon.svg`. PNG는 ImageMagick `convert`로 만드는데, 내장 SVG 렌더러가 그라디언트를 무시하므로 `url(#…)`를 단색으로 바꾼 사본을 변환합니다. maskable 아이콘은 모서리 없는 배경 위에 80% 크기로 넣은 사본에서 만듭니다.
 - **삽화 생성**: 이 컴퓨터의 Codex CLI를 씁니다 — `codex exec --sandbox workspace-write -C <repo> -o result.md - < prompt.md` (한 번에 약 10분).
   생성한 그림은 1200px JPEG로 `books/<id>/images/chapter-NN.jpg`에 넣고, 표지는 `cover.jpg`(없으면 `chapter-01.jpg`가 표지로 쓰임).
 - **StoryWeaver 책**: `/api/v1/stories/<slug>/read` JSON의 `pages[].html`에서 본문을, `coverImage.sizes`에서 삽화(959px)를 가져옵니다. 한 쪽이 한 장(chapter)입니다.

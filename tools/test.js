@@ -1,8 +1,11 @@
 /* node tools/test.js — parser, matcher and every book's scene data (no browser needed). */
 const fs = require('fs'), path = require('path');
 global.window = {};
-require('../js/parser.js'); require('../js/matcher.js');
-const P = window.LP_PARSER, M = window.LP_MATCHER;
+// in-memory localStorage so storage.js / dict.js load outside a browser
+const mem = {};
+global.localStorage = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; } };
+require('../js/parser.js'); require('../js/matcher.js'); require('../js/storage.js'); require('../js/dict.js');
+const P = window.LP_PARSER, M = window.LP_MATCHER, S = window.LP_STORAGE, D = window.LP_DICT;
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { fails++; console.log('FAIL', msg); } };
 
@@ -102,5 +105,37 @@ ok(M.match("I won't leave you", [{ all: ['not', 'leave'] }]), "contraction won't
 ok(M.match("Draw me a sheep", [{ all: ['boa', 'elephant'] }]) === false, 'negative');
 ok(M.match("what does tame mean?", [{ all: ['tame'], any: ['what', 'mean'] }]), 'any-group');
 ok(M.match("B-612", [{ any: ['b 612', 'b612', '612'] }]), 'hyphen number');
+
+// dictionary helpers: the clicked form is normalised, inflections fall back to likely stems
+ok(D.normalize('“Don’t,”') === "don't", 'normalize: ' + D.normalize('“Don’t,”'));
+ok(D.candidates('cyclones').includes('cyclone'), 'stem -s');
+ok(D.candidates('carried').includes('carry'), 'stem -ied');
+ok(D.candidates('running').includes('run'), 'stem -ing doubled consonant: ' + D.candidates('running'));
+ok(D.candidates('hoped').includes('hope'), 'stem -ed +e');
+ok(D.candidates('Dorothy’s')[0] === "dorothy's" && D.candidates('Dorothy’s').includes('dorothy'), 'possessive');
+ok(D.candidates('glass').includes('glas') === false, 'no -s stem for -ss');
+ok(D.candidates('quickly').includes('quick'), 'stem -ly');
+ok(D.candidates('x').length <= 5 && D.candidates('happiest').length <= 5, 'at most five candidates');
+ok(D.stripHtml('<span class="x"></span> Any <a href="/wiki/weather">weather</a> &amp; wind&nbsp;&#8212; “storm”') === 'Any weather & wind — “storm”', 'stripHtml: ' + D.stripHtml('<span class="x"></span> Any <a href="/wiki/weather">weather</a> &amp; wind&nbsp;&#8212; “storm”'));
+
+// study history: same chapter / word moves to the top with a count instead of duplicating; cap holds
+S.use('oz');
+S.addHistory({ type: 'open', book: 'oz', chapter: 1, mode: 'read' });
+S.addHistory({ type: 'word', book: 'oz', chapter: 1, word: 'cyclone', ko: '사이클론' });
+S.addHistory({ type: 'open', book: 'oz', chapter: 1, mode: 'play' });
+let H = S.getHistory();
+ok(H.length === 2 && H[0].type === 'open' && H[0].mode === 'play' && H[0].count === 2, 'history dedupe: ' + JSON.stringify(H));
+S.addHistory({ type: 'word', book: 'oz', chapter: 2, word: 'cyclone', ko: '' });
+H = S.getHistory();
+ok(H.length === 2 && H[0].word === 'cyclone' && H[0].count === 2 && H[0].ko === '사이클론' && H[0].chapter === 2, 'word dedupe keeps the earlier gloss: ' + JSON.stringify(H[0]));
+for (let i = 0; i < 450; i++) S.addHistory({ type: 'open', book: 'b' + i, chapter: 1 });
+ok(S.getHistory().length === 400, 'history capped at 400: ' + S.getHistory().length);
+S.clearHistory(); ok(S.getHistory().length === 0, 'history cleared');
+mem['lp.v1.history'] = '{bad json';
+ok(Array.isArray(S.getHistory()) && S.getHistory().length === 0, 'corrupt history is ignored');
+// dictionary cache: oldest entries are evicted past the cap
+for (let i = 0; i < 305; i++) S.setDictEntry('w' + i, { found: true, meanings: [] });
+ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldest');
+
 console.log(fails ? `${fails} failure(s)` : 'all tests passed');
 process.exit(fails ? 1 : 0);

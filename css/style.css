@@ -314,6 +314,79 @@ button { cursor: pointer; }
   .cover .ctitle { font-size: 14px; }
 }
 
+/* ---------- recent study: a note lying on the desk under the shelves ---------- */
+.desk-note {
+  position: relative; max-width: 760px; margin: 26px auto 0; padding: 14px 20px 12px;
+  background: var(--paper); color: var(--ink); border-radius: 3px; transform: rotate(-.35deg);
+  box-shadow: 0 18px 40px rgba(0,0,0,.45), inset 0 0 40px rgba(120,90,40,.08); font-size: 15px;
+}
+.desk-note::before { content: ""; position: absolute; left: 50%; top: -9px; width: 64px; height: 18px; transform: translateX(-50%) rotate(1.5deg); background: rgba(217,180,90,.55); }
+.desk-note h3 { margin: 0 0 8px; font-weight: 400; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); display: flex; gap: 10px; align-items: baseline; }
+.desk-note h3 .tier-ko { font-family: var(--font-ko); letter-spacing: 0; text-transform: none; font-size: 13px; color: var(--ink-soft); }
+.desk-note .muted { color: var(--ink-soft); font-size: 14px; }
+.desk-note p.muted { margin: 0; font-style: italic; }
+.desk-note .continue { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 8px; }
+.desk-note .btn { border-color: var(--ink-soft); color: var(--ink); }
+.desk-note .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.desk-note .btn.primary:hover { background: #45434f; color: var(--paper); }
+.desk-note .stats { display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline; font-size: 14px; color: var(--ink-soft); }
+.desk-note .stats b { color: var(--ink); font-weight: 500; font-size: 17px; margin-right: 3px; }
+.desk-note .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.chip { background: rgba(255,255,255,.5); color: var(--ink); border: 1px solid var(--paper-shadow); border-radius: 14px; padding: 2px 10px; font-size: 14px; display: inline-flex; gap: 6px; align-items: baseline; }
+.chip:hover { border-color: var(--gold-deep); }
+.chip .ko { font-family: var(--font-ko); font-size: 12px; color: var(--ink-soft); }
+.desk-note .history { list-style: none; margin: 12px 0 0; padding: 0; max-height: 46vh; overflow-y: auto; border-top: 1px solid var(--paper-shadow); }
+.desk-note .history .day { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-deep); padding: 10px 0 2px; }
+.desk-note .hrow { display: grid; grid-template-columns: 52px 1fr; column-gap: 10px; width: 100%; text-align: left; background: none; border: 0; padding: 4px 4px; color: var(--ink); border-radius: 2px; }
+.desk-note .hrow:hover { background: rgba(217,180,90,.18); }
+.desk-note .hrow .time { color: var(--ink-faint); font-size: 12px; padding-top: 3px; }
+.desk-note .hrow .where { grid-column: 2; font-size: 12.5px; color: var(--ink-soft); font-style: italic; }
+.desk-note .hrow .ko { font-family: var(--font-ko); color: var(--ink-soft); font-size: 13px; margin-left: 4px; }
+.desk-note .note-foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+.desk-note .note-foot .btn { border-color: var(--paper-shadow); color: var(--ink-soft); font-size: 13px; }
+.desk-note .note-foot .btn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+
+/* ---------- dictionary popover ---------- */
+mark.w-hit { background: var(--mark); color: inherit; border-radius: 2px; box-shadow: 0 0 0 2px var(--mark); }
+.dict-pop {
+  position: fixed; z-index: 60; width: 340px; max-width: calc(100vw - 16px); max-height: min(60vh, 460px); overflow-y: auto;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--paper-shadow); border-radius: 4px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.45); padding: 12px 14px 10px; font-size: 15px; line-height: 1.5;
+}
+.dict-pop .close { position: absolute; right: 4px; top: 2px; background: none; border: 0; color: var(--ink-faint); font-size: 20px; line-height: 1; padding: 4px 8px; }
+.dict-pop .close:hover { color: var(--ink); }
+.dict-pop .head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; padding-right: 24px; }
+.dict-pop .word { font-size: 21px; color: var(--ink); }
+.dict-pop .base { color: var(--ink-soft); font-size: 14px; }
+.dict-pop .phon { color: var(--ink-soft); font-size: 14px; }
+.dict-pop .say { background: none; border: 1px solid var(--paper-shadow); border-radius: 3px; padding: 0 6px; font-size: 14px; line-height: 1.5; }
+.dict-pop .say:hover { border-color: var(--gold-deep); }
+.dict-pop .ko { font-family: var(--font-ko); font-size: 15px; color: var(--ink); margin: 6px 0 2px; padding-left: 10px; border-left: 2px solid var(--gold-deep); }
+.dict-pop .pos { color: var(--gold-deep); font-style: italic; font-size: 13px; margin-top: 8px; }
+.dict-pop ol { margin: 2px 0 0; padding-left: 20px; }
+.dict-pop li { margin: 0 0 3px; font-size: 14.5px; }
+.dict-pop .ex { display: block; color: var(--ink-soft); font-style: italic; font-size: 13px; }
+.dict-pop .loading { color: var(--ink-soft); font-style: italic; margin: 8px 0 0; font-size: 14px; }
+.dict-pop .foot { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--paper-shadow); font-size: 13px; }
+.dict-pop .foot .btn { border-color: var(--ink-soft); color: var(--ink); }
+.dict-pop .foot a { color: var(--ink-soft); text-decoration-color: var(--gold-deep); }
+.dict-pop .foot a:hover { color: var(--gold-deep); }
+@media (max-width: 760px) {
+  .dict-pop { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none; border-radius: 12px 12px 0 0; max-height: 55vh; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .desk-note { transform: none; margin-top: 18px; padding: 12px 14px; }
+}
+
+/* ---------- PWA: toast + offline row ---------- */
+.pwa-toast {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 70; display: flex; gap: 12px; align-items: center;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--paper-shadow); border-radius: 4px; padding: 8px 10px 8px 14px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.45); font-size: 14px; max-width: calc(100vw - 24px);
+}
+.pwa-toast .btn { border-color: var(--ink); color: var(--ink); }
+.pwa-toast .x { background: none; border: 0; color: var(--ink-faint); font-size: 18px; line-height: 1; padding: 2px 4px; }
+.offline-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--ink-soft); font-family: var(--font-ko); }
+.offline-row .btn { border-color: var(--ink-soft); color: var(--ink); font-family: var(--font-serif); }
+
 /* dedication on the title page (front matter kept from the book text) */
 .title-page .dedication { margin: 14px 0 6px; padding: 12px 18px; border-left: 2px solid var(--gold-deep); font-style: italic; color: var(--ink); }
 .title-page .dedication p { margin: 0 0 8px; line-height: 1.55; }

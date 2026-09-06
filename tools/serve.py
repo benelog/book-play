@@ -7,6 +7,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROUTE = re.compile(r'^/books/[^/]+(?:/chapters/\d+(?:/(?:play|read))?)?/?$')
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map,
+                      '.webmanifest': 'application/manifest+json', '.js': 'text/javascript', '.svg': 'image/svg+xml'}
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=ROOT, **kw)
     def do_GET(self):

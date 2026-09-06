@@ -2,7 +2,7 @@
    Library page → book page. Book assets load from books/<id>/ on demand. Works from file:// (no fetch). */
 (function () {
   const SITE = 'Book Play';
-  const S = window.LP_STORAGE, P = window.LP_PARSER, M = window.LP_MATCHER, T = window.LP_TTS;
+  const S = window.LP_STORAGE, P = window.LP_PARSER, M = window.LP_MATCHER, T = window.LP_TTS, D = window.LP_DICT, PWA = window.LP_PWA;
   const LIBRARY = window.LP_LIBRARY || [];
   const IMG_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
   const MAX_MISSES = 3;
@@ -163,7 +163,7 @@
   // ---------- navigation ----------
   let turning = false;
   function go(next, fromHistory) {
-    T.stop(); clearInterval(typeTimer);
+    T.stop(); clearInterval(typeTimer); D.close();
     const render = () => {
       view = next;
       ({ library: renderLibrary, title: renderTitle, select: renderSelect, chapter: renderChapter })[view.name]();
@@ -185,6 +185,94 @@
     const name = BOOK ? `${esc(BOOK.title)} <small>${SITE}</small>` : `${SITE} <small>learn English with illustrated stories</small>`;
     return `<div class="topbar"><h1>${name}</h1><div class="actions">${extra}</div></div>`;
   }
+
+  // ---------- study history (shown on the library page) ----------
+  const bookOf = (id) => LIBRARY.find(b => b.id === id);
+  const dayKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${pad2(x.getMonth() + 1)}-${pad2(x.getDate())}`; };
+  function ago(iso) {
+    const s = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (s < 60) return 'just now';
+    if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+    const days = Math.floor(s / 86400);
+    return days === 1 ? 'yesterday' : days < 7 ? `${days} days ago` : new Date(iso).toLocaleDateString();
+  }
+  function dayLabel(key) {
+    const today = new Date(), y = new Date(); y.setDate(today.getDate() - 1);
+    if (key === dayKey(today)) return 'Today';
+    if (key === dayKey(y)) return 'Yesterday';
+    return new Date(key + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  // consecutive study days ending today (or yesterday, if today has not started yet)
+  function streak(history) {
+    const days = new Set(history.map(e => dayKey(e.t)));
+    const d = new Date(); let n = 0;
+    if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+    while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  function describe(e) {
+    const b = bookOf(e.book), title = b ? b.title : e.book;
+    const ch = e.chapter ? `Chapter ${roman(e.chapter)}${e.title ? ` · ${e.title}` : ''}` : '';
+    switch (e.type) {
+      case 'word': return { what: `Looked up “${e.word}”${e.ko ? ` <span class="ko">${esc(e.ko)}</span>` : ''}`, where: title + (ch ? `, ${ch}` : ''), raw: true };
+      case 'listen': return { what: `Listened to ${ch}`, where: title };
+      case 'done': return { what: `Finished ${ch}`, where: title };
+      default: return { what: `${e.mode === 'play' ? 'Played' : 'Read'} ${ch}`, where: title };
+    }
+  }
+  let showAllHistory = false;
+  function recentHtml() {
+    const h = S.getHistory();
+    const head = `<h3>Recent study${settings.koHelp ? '<span class="tier-ko">최근 학습</span>' : ''}</h3>`;
+    if (!h.length) return `<section class="desk-note">${head}<p class="muted">Nothing here yet. Open a book — the chapters you read, listen to and finish, and the words you look up, will be noted on this page.</p></section>`;
+    const last = h.find(e => e.type !== 'word' && bookOf(e.book) && e.chapter);
+    const weekAgo = Date.now() - 7 * 86400000;
+    const week = h.filter(e => new Date(e.t).getTime() >= weekAgo);
+    const count = (t) => week.filter(e => e.type === t).length;
+    const words = h.filter(e => e.type === 'word').slice(0, 14);
+    const st = streak(h);
+    const stat = (n, label) => `<span class="stat"><b>${n}</b> ${label.replace('(s)', n === 1 ? '' : 's')}</span>`;
+    let list = '';
+    if (showAllHistory) {
+      let day = null;
+      list = `<ol class="history">${h.slice(0, 80).map((e, i) => {
+        const k = dayKey(e.t), d = describe(e);
+        const headRow = k !== day ? `<li class="day">${esc(dayLabel(k))}</li>` : '';
+        day = k;
+        const time = new Date(e.t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        return `${headRow}<li><button class="hrow" data-i="${i}"><span class="time">${esc(time)}</span><span class="what">${d.raw ? d.what : esc(d.what)}</span><span class="where">${esc(d.where)}</span></button></li>`;
+      }).join('')}</ol>`;
+    }
+    return `<section class="desk-note">${head}
+      ${last ? `<div class="continue"><span>You were ${last.type === 'done' ? 'finishing' : last.mode === 'play' ? 'playing' : 'reading'} <b>${esc(bookOf(last.book).title)}</b>, Chapter ${roman(last.chapter)}${last.title ? ` · ${esc(last.title)}` : ''} <span class="muted">(${esc(ago(last.t))})</span></span>
+        <button class="btn small primary" id="btn-continue-last">Continue →</button></div>` : ''}
+      <div class="stats">${stat(count('done'), 'chapter(s) finished')}${stat(count('listen'), 'chapter(s) heard')}${stat(count('word'), 'word(s) looked up')}${stat(st, 'day(s) in a row')}<span class="muted">· this week</span></div>
+      ${words.length ? `<div class="chips">${words.map(e => `<button class="chip" data-word="${esc(e.word)}" title="Look up again">${esc(e.word)}${e.ko ? `<span class="ko">${esc(e.ko)}</span>` : ''}</button>`).join('')}</div>` : ''}
+      ${list}
+      <div class="note-foot">
+        <button class="btn small" id="btn-history-toggle">${showAllHistory ? 'Hide activity' : `Show all activity (${h.length})`}</button>
+        <button class="btn small" id="btn-history-clear">Clear history</button>
+      </div>
+    </section>`;
+  }
+  function wireRecent() {
+    const h = S.getHistory();
+    const cont = document.getElementById('btn-continue-last');
+    if (cont) cont.onclick = () => { const last = h.find(e => e.type !== 'word' && bookOf(e.book) && e.chapter); if (last) location.href = urlFor(last.book, last.chapter, last.mode === 'play' ? 'play' : 'read'); };
+    const tog = document.getElementById('btn-history-toggle');
+    if (tog) tog.onclick = () => { showAllHistory = !showAllHistory; renderLibrary(); };
+    const clr = document.getElementById('btn-history-clear');
+    if (clr) clr.onclick = () => { if (confirm('Clear the study history? (Book progress is kept.)')) { S.clearHistory(); showAllHistory = false; renderLibrary(); } };
+    app.querySelectorAll('.chip[data-word]').forEach(c => c.onclick = () => D.open(c.dataset.word, c, { speak: (t) => T.speakOnce(t) }));
+    app.querySelectorAll('.hrow').forEach(b => b.onclick = () => {
+      const e = h[+b.dataset.i]; if (!e) return;
+      if (e.type === 'word') { D.open(e.word, b, { speak: (t) => T.speakOnce(t) }); return; }
+      if (bookOf(e.book) && e.chapter) location.href = urlFor(e.book, e.chapter, e.mode === 'play' ? 'play' : 'read');
+    });
+  }
+  function syncInstallBtn() { const b = document.getElementById('btn-install'); if (b) b.hidden = !PWA.canInstall() || PWA.isStandalone(); }
+  PWA.onInstallable(syncInstallBtn);
 
   // ---------- library ----------
   // One shelf per difficulty; a book's `difficulty` in js/library.js picks the shelf.
@@ -226,9 +314,11 @@
         <h2>${SITE}</h2>
         <p>Take a book from the shelf. Read a chapter, listen to it, then step into the story and say the right line to turn the page.</p>
       </div>
+      ${recentHtml()}
       ${shelves}
       <div class="library-foot">
         <label><input type="checkbox" id="opt-ko" ${settings.koHelp ? 'checked' : ''}> Show Korean help</label>
+        <button class="btn small" id="btn-install" hidden>⤓ Install app</button>
       </div>
       <p class="add-note">책을 추가하려면 books/ 아래 폴더를 만들고 js/library.js에 등록하세요 (books/README.md).</p>`;
     app.querySelectorAll('.plate[data-dir]').forEach(el => probeCover(ROOT + el.dataset.dir, url => {
@@ -241,6 +331,9 @@
       setTimeout(() => openBook(b.dataset.id), reduceMotion ? 0 : 260);
     });
     document.getElementById('opt-ko').onchange = (e) => { settings.koHelp = e.target.checked; saveSettings(); renderLibrary(); };
+    document.getElementById('btn-install').onclick = () => PWA.install();
+    syncInstallBtn();
+    wireRecent();
   }
 
   // ---------- book boot ----------
@@ -324,6 +417,9 @@
           ${hasText ? '' : `No book text found in ${esc(DIR)}/text/ (see books/README.md).<br>`}Chapters completed: ${done} / ${TOTAL} · progress is saved in this browser.
           ${T.supported ? '' : '<br>This browser does not support speech synthesis (TTS).'}
         </div>
+        <div class="offline-row" id="offline-row" hidden>
+          <button class="btn small" id="btn-offline">⤓ Save for offline</button><span id="offline-status"></span>
+        </div>
         ${creditsHtml(BOOK)}
       </div>`, { actions: '<button class="btn small" id="btn-lib">← Library</button>', folioRight: BOOK.title.toUpperCase() });
     probeCover(DIR, url => {
@@ -341,6 +437,21 @@
     if (!BOOK.readOnly) app.querySelectorAll('input[name="opt-mode"]').forEach(r => r.onchange = (e) => { settings.answerMode = e.target.value; saveSettings(); });
     document.getElementById('opt-ko').onchange = (e) => { settings.koHelp = e.target.checked; saveSettings(); };
     document.getElementById('opt-autoread').onchange = (e) => { settings.autoRead = e.target.checked; saveSettings(); };
+    // offline copy (service worker cache) — only when served over http(s)
+    if (PWA.supported) {
+      const row = document.getElementById('offline-row'), btn = document.getElementById('btn-offline'), st = document.getElementById('offline-status');
+      row.hidden = false;
+      const setSaved = (saved, extra) => { btn.dataset.saved = saved ? '1' : ''; btn.textContent = saved ? 'Remove offline copy' : '⤓ Save for offline'; st.textContent = saved ? `Saved on this device ✓${extra || ''}` : ''; };
+      PWA.isBookSaved(DIR).then(saved => { if (saved) setSaved(true); });
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          if (btn.dataset.saved) { await PWA.forgetBook(DIR); setSaved(false); }
+          else { const files = await PWA.saveBook(DIR, TOTAL, (i, t) => { st.textContent = `Saving… ${i} / ${t}`; }); setSaved(true, ` · ${files} files`); }
+        } catch (e) { st.textContent = 'Could not save: ' + e.message; }
+        btn.disabled = false;
+      };
+    }
   }
 
   function renderSelect() {
@@ -376,7 +487,27 @@
       document.getElementById('tab-read').onclick = () => go({ name: 'chapter', num: n, mode: 'read' });
       document.getElementById('tab-play').onclick = () => go({ name: 'chapter', num: n, mode: 'play' });
     }
+    S.addHistory({ type: 'open', book: BOOK.id, chapter: n, title: m.title, mode: view.mode });
     if (view.mode === 'read') renderReader(n); else renderPlay(n);
+  }
+  const noteDone = (n) => S.addHistory({ type: 'done', book: BOOK.id, chapter: n, title: meta(n).title });
+
+  // The word under a click, from the caret position: { node, start, end, word } or null (space / punctuation).
+  function wordAtPoint(x, y, within) {
+    let node, off;
+    if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); if (!p) return null; node = p.offsetNode; off = p.offset; }
+    else if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); if (!r) return null; node = r.startContainer; off = r.startOffset; }
+    else return null;
+    if (!node || node.nodeType !== 3 || !within.contains(node)) return null;
+    const t = node.data, isW = (c) => /[A-Za-zÀ-ɏ'’-]/.test(c);
+    if (!(off < t.length && isW(t[off])) && !(off > 0 && isW(t[off - 1]))) return null;
+    let a = off, b = off;
+    while (a > 0 && isW(t[a - 1])) a--;
+    while (b < t.length && isW(t[b])) b++;
+    while (a < b && !/[A-Za-zÀ-ɏ]/.test(t[a])) a++;          // trim quotes and dashes on either side
+    while (b > a && !/[A-Za-zÀ-ɏ]/.test(t[b - 1])) b--;
+    if (a >= b) return null;
+    return { node, start: a, end: b, word: t.slice(a, b) };
   }
 
   // ---------- reading + TTS ----------
@@ -417,7 +548,7 @@
       <div class="reader-text" id="reader-text">${html}</div>
       ${(info.creditAuto ? defaultCredit() : info.credit) ? `<div class="credit">${esc(info.creditAuto ? defaultCredit() : info.credit)}</div>` : ''}
       <div class="reader-foot">
-        <span class="scene-progress">${sentences.length} sentences · click a sentence to start reading from there</span>
+        <span class="scene-progress">${sentences.length} sentences · click a word to look it up${settings.koHelp ? ' <span class="ko-help" style="display:inline">단어를 누르면 뜻이 나옵니다</span>' : ''}</span>
         ${BOOK.readOnly
           ? `<button class="btn primary" id="btn-to-play">${n < TOTAL ? 'Finished · next chapter →' : 'Finished · back to the library'}</button>`
           : '<button class="btn primary" id="btn-to-play">Go to the scenes →</button>'}
@@ -445,7 +576,10 @@
       setButtons(true);
       T.speakList(sentences, {
         onSentence: (i) => mark(i),
-        onEnd: () => { setButtons(false); textEl.querySelectorAll('.s.now').forEach(el => el.classList.remove('now')); progress.read[n] = true; save(); }
+        onEnd: () => {
+          setButtons(false); textEl.querySelectorAll('.s.now').forEach(el => el.classList.remove('now')); progress.read[n] = true; save();
+          if (from === 0) S.addHistory({ type: 'listen', book: BOOK.id, chapter: n, title: meta(n).title });
+        }
       }, from);
     }
     btnPlay.onclick = () => play(0);
@@ -454,13 +588,30 @@
       else { T.pause(); btnPause.textContent = '▶ Resume'; }
     };
     btnStop.onclick = () => { T.stop(); setButtons(false); textEl.querySelectorAll('.s.now').forEach(el => el.classList.remove('now')); };
-    textEl.querySelectorAll('.s').forEach(el => el.onclick = () => play(+el.dataset.i));
+    // Click a word → dictionary popover (with "read from here"); a click on nothing but space or punctuation reads from that sentence.
+    textEl.onclick = (e) => {
+      const s = e.target.closest('.s');
+      if (!s) return;
+      if (e.target.closest('mark.w-hit')) { D.close(); return; }
+      const w = wordAtPoint(e.clientX, e.clientY, s);
+      if (!w) { play(+s.dataset.i); return; }
+      const range = document.createRange(); range.setStart(w.node, w.start); range.setEnd(w.node, w.end);
+      const mark = document.createElement('mark'); mark.className = 'w-hit';
+      try { range.surroundContents(mark); } catch (err) { play(+s.dataset.i); return; }
+      D.open(w.word, mark, {
+        speak: (t) => T.speakOnce(t),
+        scrollParent: textEl,
+        onRead: () => play(+s.dataset.i),
+        onClose: () => { const p = mark.parentNode; if (p) { mark.replaceWith(document.createTextNode(mark.textContent)); p.normalize(); } },
+        onResult: (entry) => { if (entry.found || entry.ko) S.addHistory({ type: 'word', book: BOOK.id, chapter: n, title: meta(n).title, word: entry.word, ko: entry.ko || '' }); }
+      });
+    };
     document.getElementById('btn-to-play').onclick = () => {
       progress.read[n] = true;
       if (BOOK.readOnly) {
         progress.completed[n] = true;
         if (n >= progress.current && n < TOTAL) progress.current = n + 1;
-        save();
+        save(); noteDone(n);
         if (n < TOTAL) go({ name: 'chapter', num: n + 1, mode: 'read' }); else location.href = libraryUrl();
         return;
       }
@@ -606,7 +757,7 @@
       progress.completed[n] = true;
       progress.scene[n] = 0;
       if (n >= progress.current && n < TOTAL) progress.current = n + 1;
-      save();
+      save(); noteDone(n);
       body.innerHTML = `<div class="message">
           <p><span class="speaker">Chapter ${roman(n)}</span> <span class="line">completed.</span></p>
           <p class="ko">${esc(m.summary || '')}${ko(m.summaryKo)}</p>
