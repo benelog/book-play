@@ -19,7 +19,7 @@ window.LP_LIBRARY = [
     readOnly: true,
     dedication: { from: 'To Leon Werth' },   // shown on the title page, taken from the text file
     blurb: 'A pilot stranded in the Sahara meets a small visitor from asteroid B-612.',
-    textNote: 'Reading edition only. The English translation is CC BY-NC-ND, so the text is shown exactly as published and there are no dialogue scenes. Saint-Exupéry\'s own drawings are still under copyright in the US, so the pictures here are original.',
+    textNote: 'Reading edition only. The English translation is CC BY-NC-ND, so the text is shown exactly as published. The dialogue scenes were written independently of the translation, but the story itself is still under copyright in the US (until 2039) and France (until 2032), so retelling it as a game is switched off there; the same is true of Saint-Exupéry\'s own drawings, which is why the pictures here are original.',
     credits: {
       text: { what: 'English translation by Jeff McNeill (2019), shown unmodified', license: 'CC BY-NC-ND 4.0 — attribution, non-commercial, no derivatives', url: 'https://creativecommons.org/licenses/by-nc-nd/4.0/' },
       images: { what: 'Original watercolor-and-ink illustrations made for this site (2026)', license: 'AI-generated original compositions; not the author\'s drawings, which are protected in the US until 2039', url: 'https://en.wikipedia.org/wiki/The_Little_Prince#Copyright' },

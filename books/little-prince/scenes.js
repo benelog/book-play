@@ -1,5 +1,9 @@
-/* Game data for all 27 chapters. Written independently of the book text, so the game runs with
-   whichever English edition the player imports. Quoted lines are kept to a few words.
+/* Game data for all 27 chapters. Written independently of the book text (not derived from the
+   McNeill translation, whose CC BY-NC-ND licence only covers the text shown in the reader), so the
+   game would run with whichever English edition the player imports. Quoted lines are kept to a few words.
+   Not used at the moment: the book is readOnly in js/library.js because the story itself is still under
+   copyright in the US (until 2039) and France (until 2032), and retelling it as a game is a derivative
+   work there, the same reason the site uses original pictures instead of Saint-Exupéry's drawings.
    Fields: situation/prompt/hints (English) with *Ko Korean help; answers = keyword groups for free typing
    ({ all: [...] } every keyword required, { any: [...] } at least one); model = example answer;
    distractors = three wrong options for multiple-choice mode; reply = what happens after a good answer. */
