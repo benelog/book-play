@@ -8,7 +8,9 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
 ## 저장소와 배포
 
 - 원격: `git@github.com:benelog/book-play.git` (public). 2026-09-06에 `once-upon-a-line`에서 이름을 바꿨습니다.
-- 사이트: https://benelog.github.io/book-play/ — GitHub Pages, `main` 브랜치 루트. 푸시하면 바로 배포됩니다.
+- 사이트: https://book-play.benelog.net/ — GitHub Pages, `main` 브랜치 루트. 푸시하면 바로 배포됩니다.
+  커스텀 도메인은 2026-09-06에 설정했습니다: 저장소 루트의 `CNAME` 파일(GitHub가 만듦, 지우지 마세요) + Netlify DNS(benelog.net 존)의 `book-play` CNAME → `benelog.github.io`.
+  같은 날 Netlify 호스팅(book-play.netlify.app 프로젝트)에서는 이 도메인을 떼어 냈습니다. 무료 플랜이 "Powered by Netlify" 배지를 끼워 넣기 때문입니다. 프로젝트 자체는 남아 있지만 배포에 쓰지 않습니다.
 - 사이트 이름도 2026-09-06에 'Once Upon a Line' → 'Book Play'로 바뀌었습니다. 옛 이름이 남아 있으면 고쳐도 됩니다.
 
 ## 깨뜨리면 안 되는 제약

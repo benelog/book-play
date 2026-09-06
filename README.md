@@ -11,7 +11,7 @@
 
 `index.html`을 브라우저(Chrome 권장)에서 직접 열어도 동작합니다. 빌드 과정은 없습니다.
 
-공개 사이트: https://benelog.github.io/book-play/ (GitHub Pages, `main` 브랜치 루트에서 배포). GitHub Pages에는 URL 재작성이 없어서 `404.html`이 요청 경로를 기억했다가 `index.html`로 넘기는 방식으로 `/books/<id>/...` 경로를 처리합니다. 서비스 워커(`sw.js`)가 설치된 뒤에는 워커가 그 경로에 바로 `index.html`을 내려 주므로 이 우회가 필요 없어집니다.
+공개 사이트: https://book-play.benelog.net/ (GitHub Pages, `main` 브랜치 루트에서 배포. 커스텀 도메인은 저장소의 `CNAME` 파일, DNS는 Netlify DNS의 `book-play` CNAME → `benelog.github.io`. 옛 주소 https://benelog.github.io/book-play/ 는 여기로 넘어옵니다). GitHub Pages에는 URL 재작성이 없어서 `404.html`이 요청 경로를 기억했다가 `index.html`로 넘기는 방식으로 `/books/<id>/...` 경로를 처리합니다. 서비스 워커(`sw.js`)가 설치된 뒤에는 워커가 그 경로에 바로 `index.html`을 내려 주므로 이 우회가 필요 없어집니다.
 `start.sh`는 실행 전에 `tools/embed-text.py`를 돌려 각 책의 `text/*.txt`를 `text/book.js`로 변환한 뒤 `tools/serve.py`를 띄웁니다.
 
 ## 구성

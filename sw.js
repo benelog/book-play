@@ -7,7 +7,7 @@
      404.html redirect dance on GitHub Pages once the worker is installed.
    - Cross-origin requests (the dictionary APIs) are left alone; js/dict.js keeps its own cache in localStorage.
    Bump VERSION whenever a shell file changes so the new shell is precached and the "new version" toast appears. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `bookplay-shell-${VERSION}`;
 const BOOKS = 'bookplay-books';
 const ROOT = new URL('./', self.location).pathname;          // '/' locally, '/book-play/' on GitHub Pages

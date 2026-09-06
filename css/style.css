@@ -132,7 +132,6 @@ button { cursor: pointer; }
 
 .library-foot { display: flex; justify-content: center; gap: 18px; margin-top: 26px; font-size: 14px; color: #a9b0cf; flex-wrap: wrap; }
 .library-foot label { display: flex; gap: 6px; align-items: center; }
-.add-note { text-align: center; color: #7f88ad; font-size: 13px; margin-top: 10px; font-family: var(--font-ko); }
 
 /* ---------- the open book ---------- */
 .book-open {

@@ -319,8 +319,7 @@
       <div class="library-foot">
         <label><input type="checkbox" id="opt-ko" ${settings.koHelp ? 'checked' : ''}> Show Korean help</label>
         <button class="btn small" id="btn-install" hidden>⤓ Install app</button>
-      </div>
-      <p class="add-note">책을 추가하려면 books/ 아래 폴더를 만들고 js/library.js에 등록하세요 (books/README.md).</p>`;
+      </div>`;
     app.querySelectorAll('.plate[data-dir]').forEach(el => probeCover(ROOT + el.dataset.dir, url => {
       if (!url) return;
       el.classList.remove('empty'); el.innerHTML = `<img src="${url}" alt="">`;
