@@ -15,7 +15,7 @@ convert in.jpg -resize 1200x900 -background '#f4efe4' -gravity center -extent 12
 
 | 파일 | 이야기·장면 | Commons 원본 |
 |---|---|---|
-| `cover.jpg` | 표지 — 베이커 가의 홈즈와 왓슨 (「보헤미아 왕국의 스캔들」, “Then he stood before the fire”) | [Strand2-062-ThenHeStoodBeforeTheFire.jpg](https://commons.wikimedia.org/wiki/File:Strand2-062-ThenHeStoodBeforeTheFire.jpg) |
+| `cover.jpg` | 표지 — 베이커 가에서 의뢰인 윌슨의 이야기를 듣는 홈즈와 신문을 든 왓슨 (「빨간 머리 연맹」) | [Redh-02.jpg](https://commons.wikimedia.org/wiki/File:Redh-02.jpg) |
 | `chapter-01.jpg` | A Scandal in Bohemia — 왕이 가면을 벗는 장면 (“He tore the mask from his face”) | [Strand2-065-HeToreTheMaskFromHisFace.jpg](https://commons.wikimedia.org/wiki/File:Strand2-065-HeToreTheMaskFromHisFace.jpg) |
 | `chapter-02.jpg` | The Red-Headed League — 잠긴 사무실 문 앞의 윌슨 (“The door was shut and locked”) | [Sidney Paget - The Red-Headed League 01.jpg](https://commons.wikimedia.org/wiki/File:Sidney_Paget_-_The_Red-Headed_League_01.jpg) |
 | `chapter-03.jpg` | A Case of Identity — 의뢰인을 맞이하는 홈즈 (“Sherlock Holmes welcomed her”) | [Sidney Paget - A Case of Identity 01.jpg](https://commons.wikimedia.org/wiki/File:Sidney_Paget_-_A_Case_of_Identity_01.jpg) |
