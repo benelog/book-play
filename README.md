@@ -50,6 +50,8 @@
 | grimms-fairy-tales | Grimm's Fairy Tales | 12 | 퍼블릭 도메인, Gutenberg #2591 + Rackham 삽화 |
 | peter-pan | Peter and Wendy | 17 | 퍼블릭 도메인, Gutenberg #26654 + Bedford 삽화 |
 | red-raincoat | The Red Raincoat | 9 | CC BY 4.0, Pratham Books · StoryWeaver #369 (한 쪽이 한 장) |
+| efficiency-expert | The Efficiency Expert | 28 | 퍼블릭 도메인, Gutenberg #3475. 삽화는 자체 생성. 비즈니스 영어(면접·보고·협상) 연습용 |
+| sherlock-holmes | The Adventures of Sherlock Holmes | 12 | 퍼블릭 도메인, Gutenberg #1661 + Paget 삽화(Wikimedia Commons). 비즈니스 영어(의뢰·채용·협상) 연습용 |
 
 새 책을 추가하는 방법은 `books/README.md`를 보세요.
 폴더 하나(`books/<id>/`)에 `scenes.js`를 쓰고 `js/library.js`에 등록하면 서재에 나타납니다.
@@ -78,7 +80,7 @@ books/README.md       책 추가 가이드
 books/_template/      scenes.js 템플릿
 books/little-prince/  어린 왕자(읽기 전용): scenes.js(장 제목만 사용), art.js(SVG 삽화), text/
 books/wizard-of-oz/   오즈의 마법사: scenes.js, text/, images/ (원문·삽화 내려받기 안내는 각 README)
-books/alice-in-wonderland/, books/peter-rabbit/, books/grimms-fairy-tales/, books/peter-pan/, books/red-raincoat/  같은 구조
+books/alice-in-wonderland/, books/peter-rabbit/, books/grimms-fairy-tales/, books/peter-pan/, books/red-raincoat/, books/efficiency-expert/, books/sherlock-holmes/  같은 구조
 _redirects            정적 호스팅용 경로 재작성 규칙
 tools/serve.py        경로 방식 URL을 지원하는 로컬 서버
 tools/embed-text.py   text/*.txt → text/book.js 변환 (start.sh가 자동 실행)

@@ -127,5 +127,39 @@ window.LP_LIBRARY = [
       text: { what: 'The Red Raincoat, written by Kiran Kasturia, © Pratham Books 2015, from StoryWeaver', license: 'CC BY 4.0 — split into one page per chapter, text unchanged', url: 'https://storyweaver.org.in/en/stories/369-the-red-raincoat' },
       images: { what: 'Illustrations by Zainab Tambawalla, © Pratham Books 2015, from StoryWeaver', license: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' }
     },
+  },
+  {
+    id: 'efficiency-expert',
+    difficulty: 'intermediate',
+    color: '#5a4a2a',
+    title: 'The Efficiency Expert',
+    author: 'Edgar Rice Burroughs',
+    year: 1921,
+    chapters: 28,
+    ko: '효율성 전문가',
+    level: 'Intermediate (Business English)',
+    blurb: 'Fresh out of college, Jimmy Torrance fails at job after job in Chicago until he talks his way into a factory as an efficiency expert and finds the books do not add up.',
+    textNote: 'Text is public domain (Project Gutenberg #3475). The pictures are original illustrations made for this site. Scenes practise workplace English: interviews, meetings, reports and negotiations.',
+    credits: {
+      text: { what: 'Project Gutenberg eBook #3475', license: 'Public domain (Edgar Rice Burroughs d. 1950; published 1921)', url: 'https://www.gutenberg.org/ebooks/3475' },
+      images: { what: 'Original illustrations made for this site (2026)', license: 'AI-generated original compositions', url: 'https://www.gutenberg.org/ebooks/3475' }
+    },
+  },
+  {
+    id: 'sherlock-holmes',
+    difficulty: 'intermediate',
+    color: '#3a3a4a',
+    title: 'The Adventures of Sherlock Holmes',
+    author: 'Arthur Conan Doyle',
+    year: 1892,
+    chapters: 12,
+    ko: '셜록 홈즈의 모험',
+    level: 'Intermediate (Business English)',
+    blurb: 'Twelve cases from Baker Street: a king with a secret, a pawnbroker hired to copy the encyclopaedia, a typist whose fiancé vanished, and a speckled band in the night.',
+    textNote: 'Text and Sidney Paget\'s illustrations are public domain worldwide. Project Gutenberg #1661 (text); illustrations from The Strand Magazine (1891–92) via Wikimedia Commons. Scenes practise the formal English of client meetings, hiring and negotiation.',
+    credits: {
+      text: { what: 'Project Gutenberg eBook #1661', license: 'Public domain (Arthur Conan Doyle d. 1930; published 1892)', url: 'https://www.gutenberg.org/ebooks/1661' },
+      images: { what: 'Illustrations by Sidney Paget for The Strand Magazine (1891–92) and the 1892 Newnes edition, from Wikimedia Commons', license: 'Public domain (Paget d. 1908)', url: 'https://commons.wikimedia.org/wiki/Category:Illustrations_from_The_Adventures_of_Sherlock_Holmes_by_Sidney_Paget' }
+    },
   }
 ];
