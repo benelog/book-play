@@ -76,7 +76,7 @@ window.LP_PWA = (function () {
     } catch (e) { /* no text */ }
     // a book with a film (books/<id>/film/) keeps it too; the film page's own URL is its folder
     if (await put(`${dir}/film/film.js`)) {
-      for (const f of ['', 'index.html', '3d.html', 'film.css', 'script.js', 'cast.js', 'shots.js', 'film3d.js', 'models3d.js', 'scenes3d.js', 'vendor/three.min.js']) await put(`${dir}/film/${f}`);
+      for (const f of ['', 'index.html', '3d.html', 'film.css', 'script.js', 'cast.js', 'shots.js', 'film3d.js', 'scenes3d.js', 'vendor/three.min.js']) await put(`${dir}/film/${f}`);
     }
     for (const c of ['cover.jpg', 'cover.png', 'cover.webp']) if (await put(`${dir}/images/${c}`)) break;
     tick();

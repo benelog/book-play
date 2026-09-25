@@ -1,11 +1,9 @@
 /* The Little Prince film — 3D scenes in which the characters move (three.js).
    three.js r159 is the last release with a build that loads as a plain <script>, which file:// needs (no ES modules).
-   The characters' bodies are modelled in Blender (tools/lp-models3d.py → models3d.js, plain arrays loaded as a
-   script) as rigid parts hung on pivot groups, drawn with toon shading and ink outlines and no image textures:
+   The characters are made of simple shapes with toon shading and ink outlines, and use no image textures:
    on file:// the illustrations count as cross-origin, and WebGL refuses them as textures.
-   Each character follows its reference sheet (images/characters/<name>.jpg) and the book's eye style
-   (white of the eye, lid line, coloured iris, one highlight); eyes and mouths stay procedural so they blink and talk.
-   Scenes live in scenes3d.js. */
+   Each character follows the look of the chapter plates (images/README.md) and the book's eye style
+   (white of the eye, lid line, coloured iris, one highlight). Scenes live in scenes3d.js. */
 window.LP_FILM_3D_KIT = function (THREE) {
   const INK = new THREE.Color('#3b2a1e');
   // Three light bands in the shader: no image, canvas, or data textures.
@@ -58,12 +56,57 @@ window.LP_FILM_3D_KIT = function (THREE) {
     torus: (r, t, arc = Math.PI * 2) => new THREE.TorusGeometry(r, t, 8, 24, arc),
     box: (x, y, z) => new THREE.BoxGeometry(x, y, z)
   };
-  const X_AXIS = new THREE.Vector3(1, 0, 0);
+  // Smooth, bent tapered volumes for locks, fur, cloth and tails. Built once.
+  function sweep(points, radii, depth = 1, steps = 16, sides = 10) {
+    const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
+    const frames = curve.computeFrenetFrames(steps, false), vertices = [], indices = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps, center = curve.getPointAt(t), f = t * (radii.length - 1);
+      const j = Math.min(radii.length - 2, Math.floor(f));
+      const radius = THREE.MathUtils.lerp(radii[j], radii[j + 1], f - j);
+      for (let k = 0; k <= sides; k++) {
+        const angle = k / sides * Math.PI * 2;
+        const v = center.clone().addScaledVector(frames.normals[i], Math.cos(angle) * radius)
+          .addScaledVector(frames.binormals[i], Math.sin(angle) * radius * depth);
+        vertices.push(v.x, v.y, v.z);
+        if (i < steps && k < sides) {
+          const a = i * (sides + 1) + k, b = a + sides + 1;
+          indices.push(a, a + 1, b, b, a + 1, b + 1);
+        }
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geo.setIndex(indices); geo.computeVertexNormals();
+    // Join the duplicated seam normals so curved locks and tails shade continuously.
+    const normals = geo.attributes.normal;
+    for (let i = 0; i <= steps; i++) {
+      const a = i * (sides + 1), b = a + sides;
+      const n = new THREE.Vector3().fromBufferAttribute(normals, a).add(new THREE.Vector3().fromBufferAttribute(normals, b)).normalize();
+      normals.setXYZ(a, n.x, n.y, n.z); normals.setXYZ(b, n.x, n.y, n.z);
+    }
+    return geo;
+  }
+  function stroke(parent, points, color = '#765332', radius = 0.0015) {
+    const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
+    return part(parent, new THREE.TubeGeometry(curve, 12, radius, 5, false), color, { line: 0, mat: flat(color) });
+  }
+  function star() {
+    const shape = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 0.007 : 0.016;
+      const x = Math.cos(angle) * r, y = Math.sin(angle) * r;
+      i ? shape.lineTo(x, y) : shape.moveTo(x, y);
+    }
+    shape.closePath();
+    return new THREE.ExtrudeGeometry(shape, { depth: 0.003, bevelEnabled: false });
+  }
+
   const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
 
   // ------------------------------------------------------------------ face
   // The book's eye: small upright oval, white showing, thin lid line, coloured iris, one highlight.
-  function eye(head, x, y, z, size, iris, irisSize = 0.58) {
+  function eye(head, x, y, z, size, iris) {
     const g = new THREE.Group();
     g.position.set(x, y, z);
     g.lookAt(new THREE.Vector3(x * 2.2, y * 1.2 + 0.02, z * 2.2 + 0.4));
@@ -72,8 +115,8 @@ window.LP_FILM_3D_KIT = function (THREE) {
       m.position.set(dx, dy, dz); m.scale.set(sx, sy, 1); g.add(m); return m;
     };
     disc(size, '#fffaf0', 0, 0.78, 1);
-    disc(size * irisSize, iris, size * 0.03, 0.9, 1, 0, -size * 0.12);
-    disc(size * irisSize * 0.59, '#1d1a24', size * 0.05, 0.9, 1, 0, -size * 0.12);
+    disc(size * 0.58, iris, size * 0.03, 0.9, 1, 0, -size * 0.12);
+    disc(size * 0.34, '#1d1a24', size * 0.05, 0.9, 1, 0, -size * 0.12);
     disc(size * 0.17, '#ffffff', size * 0.07, 1, 1, size * 0.2, size * 0.14);
     const lid = new THREE.Mesh(new THREE.TorusGeometry(size * 0.86, size * 0.065, 4, 18, Math.PI * 0.95), flat('#3b2a1e'));
     lid.rotation.z = Math.PI * 0.025; lid.position.z = size * 0.08; lid.scale.set(0.9, 1.08, 1);
@@ -119,159 +162,103 @@ window.LP_FILM_3D_KIT = function (THREE) {
     }
   }
 
-  // ------------------------------------------------------------------ meshes modelled in Blender
-  // models3d.js (built by tools/lp-models3d.py) holds every rigid part of a character: which pivot group it hangs
-  // on (g), its colour (c) or vertex colours (k), its ink line (l), and base64 arrays of Int16 positions, Int8
-  // normals and Uint16 triangles. The parts are modelled in character space; the pivots give each group's rest place.
-  const MODELS = window.LP_FILM_MODELS;
-  if (!MODELS) throw new Error('models3d.js is missing');
-  const geos = {};
-  function bytes(b64) {
-    const s = atob(b64), u = new Uint8Array(s.length);
-    for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
-    return u.buffer;
-  }
-  const toLinear = (c) => c < 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  function modelGeo(who, rec) {
-    const key = who + '/' + rec.n;
-    if (geos[key]) return geos[key];
-    const q = new Int16Array(bytes(rec.p)), nq = new Int8Array(bytes(rec.q));
-    const pos = new Float32Array(q.length), nrm = new Float32Array(q.length);
-    for (let i = 0; i < q.length; i += 3) {
-      for (let k = 0; k < 3; k++) pos[i + k] = rec.o[k] + q[i + k] / 32767 * rec.s[k];
-      const x = nq[i], y = nq[i + 1], z = nq[i + 2], l = Math.hypot(x, y, z) || 1;
-      nrm[i] = x / l; nrm[i + 1] = y / l; nrm[i + 2] = z / l;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
-    geo.setIndex(new THREE.BufferAttribute(new Uint16Array(bytes(rec.i)), 1));
-    if (rec.k) {
-      const c = new Uint8Array(bytes(rec.k)), col = new Float32Array(c.length);
-      for (let i = 0; i < c.length; i++) col[i] = toLinear(c[i] / 255);
-      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    }
-    return (geos[key] = geo);
-  }
-  const vertexColored = () => toon('#ffffff', { vertexColors: true });
-  // pivot groups: rest positions from the model file, each placed relative to its parent
-  function rig(who) {
-    const piv = MODELS[who].pivots, groups = {};
-    const at = (name) => new THREE.Vector3().fromArray(piv[name] || [0, 0, 0]);
-    return {
-      groups, at,
-      group(name, parent, parentName) {
-        const g = new THREE.Group();
-        g.position.copy(at(name)).sub(parentName ? at(parentName) : new THREE.Vector3());
-        parent.add(g); groups[name] = g; return g;
-      },
-      // hang every modelled part on its group
-      dress() {
-        const parts = {};
-        MODELS[who].parts.forEach(rec => {
-          const g = groups[rec.g];
-          if (g) parts[rec.n] = part(g, modelGeo(who, rec), rec.c, { line: rec.l, mat: rec.k ? vertexColored() : undefined });
-        });
-        return parts;
-      },
-      template(name) { return MODELS[who].parts.find(r => r.n === name); }
-    };
-  }
-  function templatePart(parent, who, name, color) {
-    const rec = MODELS[who].parts.find(r => r.n === name);
-    return part(parent, modelGeo(who, rec), color || rec.c, { line: rec.l });
-  }
-  // the front of an ellipsoid head, for placing the procedural eyes, mouth and cheeks on the modelled face
-  const faceZ = (c, r, x, y, lift = 0.002) => c[2] + r[2] * Math.sqrt(Math.max(0, 1 - (x / r[0]) ** 2 - ((y - c[1]) / r[1]) ** 2)) + lift;
-
   // ------------------------------------------------------------------ the little prince
-  // About 1 unit tall, feet at the origin, facing +z (character sheet images/characters/prince.jpg): tousled spiky
-  // golden hair, round face, long mustard-yellow coat below the knees with three gold star buttons, cream baggy
-  // trousers, navy boots, long red scarf whose fringed ends move in the wind. The coat skirt is four panels that
-  // follow the legs, so walking and sitting do not tear it.
+  // about 1 unit tall, feet at the origin, facing +z; soft tousled blond hair, yellow coat, cream trousers,
+  // navy boots, long red scarf (both ends move in the wind)
   function prince() {
     const root = new THREE.Group();
     const a = actorBase(root);
-    const R = rig('prince'), P = R.at;
     const body = new THREE.Group(); root.add(body);
-    const hips = R.group('hips', body);
-    const legs = ['-', '+'].map(k => R.group('leg' + k, hips, 'hips'));
-    const skirtF = ['-', '+'].map(k => R.group('skirtF' + k, hips, 'hips'));
-    const skirtB = ['-', '+'].map(k => R.group('skirtB' + k, hips, 'hips'));
-    const torso = R.group('torso', hips, 'hips');
-    const arms = ['-', '+'].map(k => R.group('arm' + k, torso, 'torso'));
-    const neck = R.group('head', torso, 'torso');
-    const head = new THREE.Group(); neck.add(head); R.groups.head = head;
-    R.dress();
-    // face: head centre and radii as modelled (tools/lp-models3d.py, prince(): C and the face sphere)
-    const hc = [0, 0.83 - P('head').y, 0], hr = [0.097, 0.1, 0.093];
-    const eyes = [-1, 1].map(sd => {
-      const e = eye(head, 0.036 * sd, 0.122, faceZ(hc, hr, 0.036, 0.122, 0.001), 0.014, '#2f3b57', 0.7);
-      e.rotation.y += sd * 0.45;     // follow the round face, so the eye still shows in profile
-      return e;
+    const hips = new THREE.Group(); hips.position.y = 0.34; body.add(hips);
+    const legs = [-1, 1].map(sd => {
+      const leg = new THREE.Group(); leg.position.set(0.065 * sd, 0.02, 0); hips.add(leg);
+      part(leg, G.lathe([[0, 0.015], [0.06, 0.015], [0.078, -0.07], [0.076, -0.14], [0.05, -0.22], [0, -0.225]].reverse(), 16), '#eee0bc', { scale: [1, 1, 0.9] });
+      part(leg, G.cyl(0.045, 0.042, 0.09, 12), '#293e52', { at: [0, -0.26, 0], line: 0.003 });
+      part(leg, G.sphere(0.05, 16, 10), '#293e52', { at: [0, -0.314, 0.025], scale: [1, 0.72, 1.55], line: 0.003 });
+      part(leg, G.torus(0.045, 0.005), '#354e61', { at: [0, -0.216, 0], rot: [Math.PI / 2, 0, 0], line: 0.001 });
+      stroke(leg, [[-0.026, -0.14, 0.062], [-0.02, -0.18, 0.049], [-0.005, -0.2, 0.04]], '#b8a783', 0.001);
+      return leg;
     });
-    const m = mouth(head, 0.068, faceZ([0, 0.077, 0.02], [0.075, 0.055, 0.07], 0, 0.068, 0.0015), 0.011);
-    [-1, 1].forEach(sd => blush(head, 0.056 * sd, 0.09, faceZ(hc, hr, 0.056, 0.09, 0.001), 0.019));
-    // the two ends of the scarf: ribbons with a fringe, whose points are moved every frame
-    const RIB_W = 4, RIB_N = 12, FRINGE = 5, FR_N = 2;
-    function ribbonGeo() {
-      const verts = (RIB_N + 1) * (RIB_W + 1) + FRINGE * (FR_N + 1) * 2, idx = [];
-      for (let i = 0; i < RIB_N; i++) for (let j = 0; j < RIB_W; j++) {
-        const p = i * (RIB_W + 1) + j, q = p + RIB_W + 1;
-        idx.push(p, q, p + 1, p + 1, q, q + 1);
-      }
-      const base = (RIB_N + 1) * (RIB_W + 1);
-      for (let f = 0; f < FRINGE; f++) for (let i = 0; i < FR_N; i++) {
-        const p = base + f * (FR_N + 1) * 2 + i * 2, q = p + 2;
-        idx.push(p, q, p + 1, p + 1, q, q + 1);
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(verts * 3), 3));
-      geo.setIndex(idx);
-      return geo;
+    const torso = new THREE.Group(); hips.add(torso);
+    part(torso, G.lathe([[0.001, -0.06], [0.145, -0.06], [0.148, -0.04], [0.128, 0.07], [0.113, 0.19], [0.114, 0.25], [0.07, 0.30], [0.001, 0.30]]), '#cfa23c', { scale: [1, 1, 0.78] });
+    [[0.015, 0.109], [0.10, 0.099], [0.185, 0.091]].forEach(([y, z]) => part(torso, star(), '#f8df90', { at: [0, y, z], line: 0.0014 }));
+    stroke(torso, [[0.018, -0.048, 0.116], [0.017, 0.08, 0.1], [0.016, 0.22, 0.09]], '#9e762f', 0.001);
+    // scarf knot round the neck
+    part(torso, G.torus(0.075, 0.034), '#b8432c', { at: [0, 0.29, 0], rot: [Math.PI / 2, 0, 0] });
+    const arms = [-1, 1].map(sd => {
+      const arm = new THREE.Group(); arm.position.set(0.12 * sd, 0.26, 0); torso.add(arm);
+      part(arm, G.capsule(0.043, 0.15), '#cfa23c', { at: [0, -0.1, 0] });
+      part(arm, G.sphere(0.033, 16, 10), '#f6d6b8', { at: [0, -0.21, 0], line: 0.0035 });
+      arm.rotation.z = 0.12 * sd;
+      return arm;
+    });
+    const neck = new THREE.Group(); neck.position.y = 0.31; torso.add(neck);
+    const head = new THREE.Group(); neck.add(head);
+    part(head, G.sphere(0.165, 28, 20), '#f7d9bc', { at: [0, 0.15, 0], scale: [1, 0.97, 0.95] });
+    part(head, G.sphere(0.035, 10, 8), '#f7d9bc', { at: [0.158, 0.14, 0], line: 0.003 });
+    part(head, G.sphere(0.035, 10, 8), '#f7d9bc', { at: [-0.158, 0.14, 0], line: 0.003 });
+    const eyes = [-1, 1].map(sd => eye(head, 0.056 * sd, 0.15, 0.151, 0.017, '#596e57'));
+    const m = mouth(head, 0.075, 0.149, 0.015);
+    blush(head, 0.095, 0.1, 0.13, 0.026); blush(head, -0.095, 0.1, 0.13, 0.026);
+    part(head, G.sphere(0.018, 12, 8), '#f7d9bc', { at: [0, 0.113, 0.156], scale: [0.75, 0.85, 1.15], line: 0.0015 });
+    // An open hair cap follows the skull, leaving the face unobscured.
+    const capGeo = new THREE.SphereGeometry(1, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.99);
+    const hp = capGeo.attributes.position;
+    for (let i = 0; i < hp.count; i++) {
+      const x = hp.getX(i), y = hp.getY(i), z = hp.getZ(i);
+      const phi = Math.atan2(z, x), front = (Math.sin(phi) + 1) / 2;
+      const theta = Math.acos(THREE.MathUtils.clamp(y, -1, 1)) / (Math.PI * 0.99) * (2.1 - front * 0.88);
+      hp.setXYZ(i, Math.cos(phi) * Math.sin(theta) * 0.177, 0.18 + Math.cos(theta) * 0.165, -0.017 + Math.sin(phi) * Math.sin(theta) * 0.169);
     }
+    capGeo.computeVertexNormals();
+    part(head, capGeo, '#e6b84d', { line: 0.003 });
+    const lock = (points, width, color = '#edc15a') => part(head, sweep(points, [width * 0.65, width, width * 0.7, width * 0.3, 0.0008], 0.7, 12, 8), color, { line: 0.002 });
+    // Broad roots overlap; only the curved tips break the silhouette.
+    for (let i = 0; i < 11; i++) {
+      const angle = i / 11 * Math.PI * 2, x = Math.cos(angle), z = Math.sin(angle);
+      if (z > 0.6) continue;
+      lock([[x * 0.125, 0.255, z * 0.125 - 0.02], [x * 0.172, 0.244, z * 0.164 - 0.02],
+        [x * 0.19, 0.205, z * 0.179 - 0.02], [x * 0.213, 0.211, z * 0.182 - 0.02]], 0.036);
+      lock([[x * 0.12, 0.2, z * 0.13 - 0.02], [x * 0.165, 0.173, z * 0.154 - 0.02],
+        [x * 0.183, 0.137, z * 0.164 - 0.02], [x * 0.193, 0.146, z * 0.174 - 0.02]], 0.028, '#e4b54b');
+    }
+    [[-0.13, 0.30, -0.02, -0.042], [-0.08, 0.32, 0.015, 0.021], [-0.028, 0.333, -0.025, -0.025],
+      [0.026, 0.328, 0.018, 0.04], [0.086, 0.305, -0.012, 0.025], [0.132, 0.29, -0.04, 0.045]].forEach(([x, y, z, bend]) => {
+      lock([[x - bend * 0.5, y - 0.04, z], [x, y + 0.002, z + 0.018], [x + bend, y + 0.012, z + 0.009],
+        [x + bend * 1.1, y + 0.037, z - 0.003]], 0.037);
+    });
+    [[-0.121, 0.286, 0.032, 0.073], [-0.067, 0.307, 0.043, 0.071], [-0.013, 0.30, 0.037, 0.091],
+      [0.056, 0.29, 0.032, 0.074], [0.116, 0.267, 0.025, 0.064]].forEach(([x, y, width, length], i) => {
+      const z = 0.14 - Math.abs(x) * 0.27, bend = i === 0 ? -0.025 : 0.024;
+      lock([[x - 0.025, y, z - 0.032], [x + 0.006, y - 0.015, z + 0.009],
+        [x + bend, y - length * 0.7, z + 0.025], [x + bend * 0.5, y - length, z + 0.021]], width);
+    });
+    // the two ends of the scarf: ribbons whose points are moved every frame
     const tails = [0, 1].map(k => {
-      const mesh = new THREE.Mesh(ribbonGeo(), toon('#b9442e', { side: THREE.DoubleSide }));
+      const geo = new THREE.PlaneGeometry(0.075, 1, 1, 12);
+      const mesh = new THREE.Mesh(geo, toon('#b8432c', { side: THREE.DoubleSide }));
       mesh.frustumCulled = false;
       torso.add(mesh);
-      return { mesh, len: k ? 0.3 : 0.34, side: k ? 1 : -1, ph: k * 1.7 };
+      return { mesh, len: k ? 0.5 : 0.62, side: k ? 0.035 : -0.035, ph: k * 1.7 };
     });
-    const tmp = new THREE.Vector3(), q = new THREE.Quaternion(), T = P('torso');
-    // the coat's chest, as an ellipsoid the ribbons slide over (torso space)
-    const chest = { c: new THREE.Vector3(0, 0.49 - T.y, 0.0), r: new THREE.Vector3(0.14, 0.26, 0.118) };
-    function outsideChest(p) {
-      const d = new THREE.Vector3((p.x - chest.c.x) / chest.r.x, (p.y - chest.c.y) / chest.r.y, (p.z - chest.c.z) / chest.r.z);
-      const l = d.length();
-      if (l < 1.06) { d.multiplyScalar(1.06 / l); p.set(chest.c.x + d.x * chest.r.x, chest.c.y + d.y * chest.r.y, chest.c.z + d.z * chest.r.z); }
-      return p;
-    }
+    const tmp = new THREE.Vector3(), q = new THREE.Quaternion();
     a.head = head; a.eyes = eyes; a.arms = arms; a.legs = legs; a.torso = torso; a.hips = hips; a.body = body;
-    a.headPoint = () => head.localToWorld(new THREE.Vector3(0, 0.115, 0));
+    a.headPoint = () => head.localToWorld(new THREE.Vector3(0, 0.15, 0));
     a.height = 1;
-    const HIPS_Y = P('hips').y;
     a.update = (dt, t, wind) => {
       // walk cycle
       a.phase += dt * 9 * a.walk;
       const sw = Math.sin(a.phase) * 0.55 * Math.min(1, a.walk);
       a.sit += (a.sitGoal - a.sit) * (1 - Math.exp(-dt / 0.4));
       legs[0].rotation.x = sw - a.sit * 1.45; legs[1].rotation.x = -sw - a.sit * 1.45;
-      // the coat skirt: front panels go with a leg that swings forward, back panels with one that swings back;
-      // sitting, the back of the coat spreads behind on the ground
-      legs.forEach((leg, i) => {
-        const walkR = leg.rotation.x + a.sit * 1.45;
-        skirtF[i].rotation.x = Math.min(walkR, 0) * 0.92 + Math.max(walkR, 0) * 0.3 - a.sit * 1.2;
-        skirtB[i].rotation.x = Math.max(walkR, 0) * 0.95 + Math.min(walkR, 0) * 0.3 + a.sit * 0.75;
-        // seated, the cloth bunches up instead of reaching into the ground
-        skirtF[i].scale.y = 1 - a.sit * 0.2; skirtB[i].scale.y = 1 - a.sit * 0.35;
-      });
-      hips.position.y = HIPS_Y - a.sit * 0.2 + Math.abs(Math.cos(a.phase)) * 0.02 * a.walk;
+      hips.position.y = 0.34 - a.sit * 0.2 + Math.abs(Math.cos(a.phase)) * 0.02 * a.walk;
       torso.rotation.x = a.ease('lean', a.poseGoal.lean || 0, dt) + a.sit * 0.08;
       const armL = a.ease('armL', a.poseGoal.armL != null ? a.poseGoal.armL : -sw * 0.9, dt, 0.25);
       const armR = a.ease('armR', a.poseGoal.armR != null ? a.poseGoal.armR : sw * 0.9, dt, 0.25);
       arms[0].rotation.x = armL + (a.talk > 0.3 ? Math.sin(t * 3.1) * 0.12 * a.talk : 0);
       arms[1].rotation.x = armR;
-      arms[0].rotation.z = -0.14 - a.ease('armLOut', a.poseGoal.armLOut || 0, dt) - a.sit * 0.1;
-      arms[1].rotation.z = 0.14 + a.ease('armROut', a.poseGoal.armROut || 0, dt) + a.sit * 0.1;
+      arms[0].rotation.z = -0.12 - a.ease('armLOut', a.poseGoal.armLOut || 0, dt);
+      arms[1].rotation.z = 0.12 + a.ease('armROut', a.poseGoal.armROut || 0, dt);
       // breathing, looking, talking
       body.position.y = Math.sin(t * 2.1) * 0.006;
       a.look.lerp(a.lookGoal, 1 - Math.exp(-dt / 0.3));
@@ -279,49 +266,27 @@ window.LP_FILM_3D_KIT = function (THREE) {
       head.rotation.x = a.look.y + (a.talk > 0.2 ? Math.sin(t * 4.1) * 0.05 * a.talk : 0) + a.ease('nod', a.poseGoal.nod || 0, dt);
       head.rotation.z = a.ease('tilt', a.poseGoal.tilt || 0, dt);
       blinkAndTalk(a, dt, t, eyes, m);
-      // scarf ends hang over the chest and stream away from the wind, fluttering; the fringe trails the end
+      // scarf ends stream away from the wind and flutter
       root.updateMatrixWorld(true);
       q.copy(torso.getWorldQuaternion(new THREE.Quaternion())).invert();
-      const w = (wind || new THREE.Vector3(0, 0, 0)).clone().applyQuaternion(q);
+      const w = (wind || new THREE.Vector3(1, 0, 0)).clone().applyQuaternion(q);
       const strength = Math.min(1, w.length());
-      if (strength > 0) w.normalize();
+      w.normalize();
       tails.forEach(tl => {
         const pos = tl.mesh.geometry.attributes.position;
-        const base = new THREE.Vector3(tl.side * 0.05, 0.7 - T.y, 0.06);
-        const dir = new THREE.Vector3(w.x * strength * 0.8 + tl.side * 0.1 * (1 - strength), -1 + strength * 0.45, w.z * strength * 0.8 + 0.1 * (1 - strength)).normalize();
-        const side0 = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1));
-        if (side0.lengthSq() < 0.01) side0.set(1, 0, 0);
-        side0.normalize();
-        // the cloth twists along its length, so it shows its face from every side
-        const sides = [];
-        for (let i = 0; i <= RIB_N; i++) sides.push(side0.clone().applyAxisAngle(dir, tl.side * (i / RIB_N) * (0.3 + strength * 0.9) + Math.sin(t * 3 + tl.ph + i * 0.4) * 0.15 * strength));
-        const sideV = sides[RIB_N];
-        const along = [];
-        for (let i = 0; i <= RIB_N; i++) {
-          const s = i / RIB_N;
-          const flutter = Math.sin(t * 7 * (0.4 + strength) - s * 6 + tl.ph) * 0.05 * s * (0.2 + strength);
-          const lift = Math.sin(t * 5 - s * 4 + tl.ph) * 0.03 * s * strength;
+        const base = new THREE.Vector3(tl.side, 0.29, -0.07);
+        const dir = new THREE.Vector3(w.x * strength, -0.9 + strength * 0.75, w.z * strength - 0.25).normalize();
+        const sideV = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1)).normalize();
+        if (sideV.lengthSq() < 0.01) sideV.set(1, 0, 0);
+        const n = 12;
+        for (let k = 0; k <= n; k++) {
+          const s = k / n;
+          const flutter = Math.sin(t * 7 * (0.4 + strength) - s * 6 + tl.ph) * 0.07 * s * (0.3 + strength);
+          const lift = Math.sin(t * 5 - s * 4 + tl.ph) * 0.04 * s * strength;
           tmp.copy(base).addScaledVector(dir, s * tl.len).add(new THREE.Vector3(0, lift, flutter));
-          along.push(outsideChest(tmp.clone()));
-        }
-        for (let i = 0; i <= RIB_N; i++) {
-          const half = 0.03 * (1 - (i / RIB_N) * 0.1), sv = sides[i];
-          for (let j = 0; j <= RIB_W; j++) {
-            const u = (j / RIB_W) * 2 - 1, p = along[i];
-            pos.setXYZ(i * (RIB_W + 1) + j, p.x + sv.x * half * u, p.y + sv.y * half * u, p.z + sv.z * half * u);
-          }
-        }
-        // fringe: five narrow strands continuing the last segment
-        const end = along[RIB_N], d2 = end.clone().sub(along[RIB_N - 1]).normalize(), fb = (RIB_N + 1) * (RIB_W + 1);
-        for (let f = 0; f < FRINGE; f++) {
-          const u = (f / (FRINGE - 1)) * 2 - 1;
-          for (let i = 0; i <= FR_N; i++) {
-            const l = i / FR_N * (0.035 + (f % 2) * 0.008);
-            const cx = end.x + sideV.x * 0.024 * u + d2.x * l, cy = end.y + sideV.y * 0.024 * u + d2.y * l, cz = end.z + sideV.z * 0.024 * u + d2.z * l;
-            const hw = 0.0035 * (1 - i / FR_N * 0.3);
-            pos.setXYZ(fb + f * (FR_N + 1) * 2 + i * 2, cx - sideV.x * hw, cy - sideV.y * hw, cz - sideV.z * hw);
-            pos.setXYZ(fb + f * (FR_N + 1) * 2 + i * 2 + 1, cx + sideV.x * hw, cy + sideV.y * hw, cz + sideV.z * hw);
-          }
+          const half = 0.0375 * (1 - s * 0.25);
+          pos.setXYZ(k * 2, tmp.x - sideV.x * half, tmp.y - sideV.y * half, tmp.z - sideV.z * half);
+          pos.setXYZ(k * 2 + 1, tmp.x + sideV.x * half, tmp.y + sideV.y * half, tmp.z + sideV.z * half);
         }
         pos.needsUpdate = true;
         tl.mesh.geometry.computeVertexNormals();
@@ -331,122 +296,183 @@ window.LP_FILM_3D_KIT = function (THREE) {
   }
 
   // ------------------------------------------------------------------ the fox
-  // Slender red fox (images/characters/fox.jpg): white bib from the cheeks down the chest, white belly line and tail
-  // tip, black-brown stockings and ear backs, pale inner ears. Sits (the rump folds down round the shoulders, hind legs
-  // tucked forward) or walks; the tail wags when he is happy.
+  // orange with a white chest, muzzle and tail tip, dark legs and ear tips; sits or walks; the tail wags when happy
   function fox() {
     const root = new THREE.Group();
     const a = actorBase(root);
-    const R = rig('fox'), P = R.at;
-    const body = R.group('body', root);
-    const trunk = R.group('trunk', body, 'body');
-    const neck = R.group('neck', body, 'body');
-    const head = R.group('head', neck, 'neck');
-    const ears = ['-', '+'].map(k => R.group('ear' + k, head, 'head'));
-    const front = ['-', '+'].map(k => R.group('front' + k, body, 'body'));
-    const hind = ['-', '+'].map(k => R.group('hind' + k, trunk, 'trunk'));
-    const shins = ['-', '+'].map((k, i) => R.group('shin' + k, hind[i], 'hind' + k));
-    const feet = ['-', '+'].map((k, i) => R.group('foot' + k, shins[i], 'shin' + k));
-    // the tail hangs on the body and follows the rump by hand, so it can lie round the feet when he sits
-    const tail = R.group('tail', body, 'body'); tail.rotation.order = 'YXZ';
-    const TAIL = P('tail').sub(P('trunk')), TRUNK = P('trunk').sub(P('body'));
-    R.dress();
-    const hc = [0, 0.008, -0.01], hr = [0.056, 0.052, 0.06];
+    const red = '#c76c2f', cream = '#f3e7cd', dark = '#43352c';
+    const body = new THREE.Group(); body.position.y = 0.32; root.add(body);
+    const trunk = part(body, G.sphere(1, 24, 16), red, { scale: [0.117, 0.133, 0.24], at: [0, 0, -0.035] });
+    const neck = new THREE.Group(); body.add(neck);
+    part(neck, G.sphere(1, 20, 14), red, { at: [0, 0.025, -0.015], scale: [0.088, 0.15, 0.084], rot: [-0.22, 0, 0] });
+    part(neck, G.sphere(1, 18, 12), cream, { at: [0, 0.005, 0.052], scale: [0.075, 0.13, 0.042], line: 0 });
+    // A few overlapping curved points give the bib a fur edge, without a spiky collar.
+    [-1, 0, 1].forEach(sd => part(neck, sweep([[sd * 0.04, -0.025, 0.074], [sd * 0.038, -0.08, 0.075], [sd * 0.023, -0.14 + Math.abs(sd) * 0.025, 0.046]], [0.025, 0.025, 0.0005], 0.5, 8, 8), cream, { line: 0.0015 }));
+    const legs = [-1, 1, -1, 1].map((sd, i) => {
+      const leg = new THREE.Group(); body.add(leg);
+      if (i < 2) {
+        part(leg, G.lathe([[0, 0.018], [0.037, 0.012], [0.031, -0.08], [0.021, -0.2], [0.023, -0.275], [0, -0.29]].reverse(), 12), red);
+        part(leg, G.cyl(0.026, 0.025, 0.09, 12), dark, { at: [0, -0.235, 0.002], line: 0.002 });
+        part(leg, G.sphere(0.032, 12, 8), dark, { at: [0, -0.288, 0.018], scale: [0.83, 0.65, 1.55], line: 0.002 });
+      } else {
+        part(leg, G.sphere(1, 18, 12), red, { at: [0, -0.07, -0.008], scale: [0.079, 0.116, 0.095] });
+        const shin = part(leg, G.capsule(0.027, 0.13), red, { at: [0, -0.2, -0.02], line: 0.003 });
+        const paw = part(leg, G.sphere(0.034, 12, 8), dark, { at: [0, -0.28, 0.018], scale: [0.9, 0.65, 1.7], line: 0.002 });
+        leg.userData.shin = shin; leg.userData.paw = paw;
+      }
+      return leg;
+    });
+    const head = new THREE.Group(); head.position.set(0, 0.13, 0.02); neck.add(head);
+    part(head, G.sphere(1, 24, 16), red, { scale: [0.098, 0.096, 0.112] });
+    // Long tapered muzzle, cream lower jaw and a small dark nose.
+    part(head, sweep([[0, -0.035, 0.038], [0, -0.041, 0.105], [0, -0.038, 0.174], [0, -0.032, 0.211]], [0.067, 0.048, 0.026, 0.009], 0.65), cream, { line: 0.002 });
+    part(head, sweep([[0, 0.012, 0.05], [0, -0.008, 0.109], [0, -0.019, 0.17], [0, -0.02, 0.208]], [0.055, 0.038, 0.019, 0.004], 0.62), red, { line: 0.002 });
+    part(head, G.sphere(0.014, 12, 8), dark, { at: [0, -0.022, 0.21], scale: [1, 0.75, 0.85], line: 0.001 });
+    [-1, 1].forEach(sd => {
+      part(head, G.sphere(1, 14, 10), cream, { at: [sd * 0.063, -0.041, 0.04], scale: [0.029, 0.022, 0.063], line: 0 });
+      part(head, sweep([[sd * 0.064, -0.006, 0], [sd * 0.093, -0.024, -0.012], [sd * 0.119, -0.016, -0.03]], [0.035, 0.03, 0.001], 0.7, 8, 8), red, { line: 0.002 });
+      stroke(head, [[sd * 0.012, -0.043, 0.198], [sd * 0.029, -0.056, 0.155], [sd * 0.058, -0.049, 0.091]], '#684332', 0.0012);
+    });
+    const ears = [-1, 1].map(sd => {
+      const ear = new THREE.Group(); ear.position.set(0.063 * sd, 0.065, -0.025); head.add(ear);
+      const earGeo = sweep([[0, 0, 0], [sd * 0.005, 0.054, -0.008], [sd * 0.007, 0.11, -0.005], [0, 0.165, 0.003]], [0.049, 0.04, 0.021, 0.0005], 0.42, 12, 10);
+      part(ear, earGeo, dark, { line: 0.002 });
+      part(ear, sweep([[0, 0.002, 0.012], [0, 0.046, 0.016], [0, 0.107, 0.012], [0, 0.144, 0.009]], [0.039, 0.031, 0.013, 0.001], 0.25, 10, 10), red, { line: 0 });
+      part(ear, sweep([[0, 0.014, 0.022], [0, 0.05, 0.025], [0, 0.092, 0.022], [0, 0.123, 0.013]], [0.024, 0.022, 0.01, 0.001], 0.18, 10, 8), '#e6ccaa', { line: 0 });
+      ear.rotation.z = -sd * 0.16;
+      return ear;
+    });
     const eyes = [-1, 1].map(sd => {
-      const e = eye(head, 0.029 * sd, 0.016, faceZ(hc, hr, 0.029, 0.016, 0.0), 0.011, '#9a6124', 0.62);
-      e.rotation.y += sd * 0.3;
+      const e = eye(head, 0.065 * sd, 0.028, 0.081, 0.0135, '#906326');
+      e.rotation.y = sd * 0.5;
       return e;
     });
-    const legs = [front[0], front[1], hind[0], hind[1]];
-    const BODY = P('body'), NECK = P('neck').sub(BODY);
+    // One continuous bushy tail; only its pivot moves, so no bead-like joints.
+    const tail = new THREE.Group(); body.add(tail);
+    const tailPoints = [[0, 0, 0], [0.06, -0.095, -0.11], [0.16, -0.15, -0.25], [0.27, -0.15, -0.30], [0.36, -0.12, -0.26], [0.43, -0.085, -0.17]];
+    const tailGeo = sweep(tailPoints, [0.031, 0.065, 0.096, 0.101, 0.064, 0.0002], 0.85, 28, 12);
+    // Material bands share vertices/normals at the white tip boundary.
+    tailGeo.clearGroups(); const bandSize = 12 * 6;
+    tailGeo.addGroup(0, bandSize * 17, 0); tailGeo.addGroup(bandSize * 17, bandSize * 11, 1);
+    const tailMesh = new THREE.Mesh(tailGeo, [toon(red), toon(cream)]); tail.add(tailMesh);
+    const tailInk = tailGeo.clone(); tailInk.clearGroups();
+    tail.add(new THREE.Mesh(tailInk, outlineMat(0.003)));
     a.head = head; a.eyes = eyes; a.body = body; a.legs = legs;
-    a.headPoint = () => head.localToWorld(new THREE.Vector3(0, 0, 0.03));
+    a.headPoint = () => head.localToWorld(new THREE.Vector3(0, 0, 0.05));
     a.height = 0.7; a.wag = 0.3;
     a.update = (dt, t) => {
       a.phase += dt * 8 * a.walk;
-      const sw = Math.sin(a.phase) * 0.45 * Math.min(1, a.walk);
+      const sw = Math.sin(a.phase) * 0.48 * Math.min(1, a.walk);
       a.sit += (a.sitGoal - a.sit) * (1 - Math.exp(-dt / 0.4));
       const sit = a.sit;
-      body.position.y = BODY.y + Math.abs(Math.cos(a.phase)) * 0.012 * a.walk;
-      // sitting: the back half turns down round the shoulders onto the haunches; the neck straightens
-      trunk.rotation.x = -sit * 1.0;
-      neck.position.set(0, NECK.y + sit * 0.075, NECK.z - sit * 0.02);
-      neck.rotation.x = -sit * 0.12 + a.ease('nod', a.poseGoal.nod || 0, dt);
-      front.forEach((leg, i) => { leg.rotation.x = (i ? -sw : sw) * (1 - sit); });
-      // hind legs fold: thigh forward, shin back to the hock on the ground, the foot flat and forward
-      hind.forEach((leg, i) => {
-        leg.rotation.x = (i ? sw : -sw) * (1 - sit) + sit * 0.05;
-        shins[i].rotation.x = sit * 1.73;
-        feet[i].rotation.x = -sit * 1.8;
+      // The chest stays over straight forelegs as the pelvis folds to the ground.
+      body.position.y = 0.32 + Math.abs(Math.cos(a.phase)) * 0.012 * a.walk;
+      trunk.position.set(0, -sit * 0.065, -0.035 - sit * 0.035);
+      trunk.rotation.x = -sit * 0.78;
+      neck.position.set(0, 0.085 + sit * 0.016, 0.185 - sit * 0.09);
+      neck.rotation.x = a.ease('nod', a.poseGoal.nod || 0, dt);
+      legs.forEach((leg, i) => {
+        const sd = i % 2 ? 1 : -1;
+        if (i < 2) {
+          leg.position.set(sd * 0.065, -0.005, 0.16 - sit * 0.025);
+          leg.rotation.x = (i ? -sw : sw) * (1 - sit);
+        } else {
+          leg.position.set(sd * (0.081 + sit * 0.015), -sit * 0.10, -0.19 + sit * 0.025);
+          leg.rotation.x = (i === 2 ? -sw : sw) * (1 - sit);
+          leg.userData.shin.position.set(0, -0.2 + sit * 0.065, -0.02 + sit * 0.075);
+          leg.userData.shin.rotation.x = -sit * 1.12;
+          leg.userData.paw.position.set(0, -0.28 + sit * 0.10, 0.018 + sit * 0.06);
+        }
       });
       a.look.lerp(a.lookGoal, 1 - Math.exp(-dt / 0.3));
       head.rotation.y = a.look.x;
       head.rotation.z = Math.sin(t * 0.7) * 0.025 + a.ease('tilt', a.poseGoal.tilt || 0, dt);
-      head.rotation.x = a.look.y + sit * 0.12 + (a.talk > 0.2 ? Math.sin(t * 9) * 0.04 * a.talk : 0);
+      head.rotation.x = a.look.y + (a.talk > 0.2 ? Math.sin(t * 9) * 0.04 * a.talk : 0);
       const down = a.ease('earsDown', a.poseGoal.earsDown || 0, dt);
-      ears.forEach((e, i) => { e.rotation.x = Math.max(0, Math.sin(t * 1.3 + i * 2) - 0.92) * 2 - down * 0.6; e.rotation.z = (i ? -1 : 1) * down * 0.35; });
+      ears.forEach((e, i) => { e.rotation.x = Math.max(0, Math.sin(t * 1.3 + i * 2) - 0.92) * 2 - down * 0.6; });
       const wag = a.ease('wag', a.wag, dt, 0.5);
-      tail.position.copy(TAIL).applyAxisAngle(X_AXIS, trunk.rotation.x).add(TRUNK);
-      tail.rotation.x = sit * 1.45 - 0.1 * (1 - sit);
-      tail.rotation.y = -sit * 1.9 + Math.sin(t * (3 + wag * 4)) * (0.03 + wag * 0.22);
+      tail.position.set(0, -0.02 - sit * 0.05, -0.235);
+      tail.rotation.y = -sit * 0.65 + Math.sin(t * (3 + wag * 4)) * (0.03 + wag * 0.22);
+      tail.rotation.x = -0.12 * (1 - sit);
       blinkAndTalk(a, dt, t, eyes, null);
     };
     return a;
   }
 
   // ------------------------------------------------------------------ the lamplighter
-  // Old man (images/characters/lamplighter.jpg): short white beard and moustache, wild white hair, red knitted
-  // stocking cap with a cream pompom, navy work suit with a belt, long orange-red fringed scarf, brown lace-up boots.
-  // The long pole stands on the ground in his right hand; he lifts it to the lamp. His arms bend at the elbow.
+  // old man, white beard and hair, red stocking cap with a pompom, navy coat and trousers, brown boots,
+  // long orange-red scarf, a long lighting pole
   function lamplighter() {
     const root = new THREE.Group();
     const a = actorBase(root);
-    const R = rig('lamplighter'), P = R.at;
     const body = new THREE.Group(); root.add(body);
-    const hips = R.group('hips', body);
-    const legs = ['-', '+'].map(k => R.group('leg' + k, hips, 'hips'));
-    const torso = R.group('torso', hips, 'hips');
-    const arms = ['-', '+'].map(k => R.group('arm' + k, torso, 'torso'));
-    const fores = ['-', '+'].map((k, i) => R.group('fore' + k, arms[i], 'arm' + k));
-    // the pole turns in the hand (pole) and slides so that it stands on the ground (slide)
-    const pole = new THREE.Group(); pole.position.copy(P('pole')).sub(P('fore-')); fores[0].add(pole);
-    const slide = new THREE.Group(); pole.add(slide); R.groups.pole = slide;
-    const neck = R.group('head', torso, 'torso');
-    const head = new THREE.Group(); neck.add(head); R.groups.head = head;
-    R.dress();
-    const hc = [0, 1.2 - P('head').y, 0], hr = [0.098, 0.106, 0.096];
-    const eyes = [-1, 1].map(sd => eye(head, 0.037 * sd, 0.158, faceZ(hc, hr, 0.037, 0.158, 0.001), 0.0125, '#4e5f74'));
-    [-1, 1].forEach(sd => blush(head, 0.06 * sd, 0.12, faceZ(hc, hr, 0.06, 0.12, 0.004), 0.02));
-    // handkerchief in the other hand (red), shown while he wipes his forehead
-    const hanky = part(fores[1], G.box(0.1, 0.085, 0.01), '#b8432c', { at: [0, P('pole').y - P('fore+').y - 0.02, 0.045], line: 0.003 });
+    const hips = new THREE.Group(); hips.position.y = 0.55; body.add(hips);
+    const legs = [-1, 1].map(sd => {
+      const leg = new THREE.Group(); leg.position.set(0.08 * sd, 0, 0); hips.add(leg);
+      part(leg, G.capsule(0.075, 0.3), '#2b3868', { at: [0, -0.2, 0] });
+      part(leg, G.cyl(0.063, 0.052, 0.13, 12), '#66503a', { at: [0, -0.41, 0], line: 0.003 });
+      part(leg, G.sphere(0.063, 16, 10), '#66503a', { at: [0, -0.493, 0.033], scale: [1, 0.65, 1.6], line: 0.003 });
+      part(leg, G.torus(0.062, 0.008), '#806448', { at: [0, -0.348, 0], rot: [Math.PI / 2, 0, 0], line: 0.0015 });
+      return leg;
+    });
+    const torso = new THREE.Group(); hips.add(torso);
+    part(torso, G.lathe([[0.001, -0.05], [0.2, -0.05], [0.21, 0.1], [0.19, 0.3], [0.13, 0.42], [0.001, 0.43]]), '#2b3868');
+    part(torso, G.torus(0.19, 0.025), '#6b4428', { at: [0, 0.04, 0], rot: [Math.PI / 2, 0, 0], line: 0.003 });
+    part(torso, G.box(0.045, 0.033, 0.008), '#b29456', { at: [0, 0.04, 0.224], line: 0.0015 });
+    part(torso, G.box(0.029, 0.019, 0.009), '#594531', { at: [0, 0.04, 0.23], line: 0 });
+    [0.14, 0.23, 0.31].forEach(y => part(torso, G.sphere(0.008, 8, 6), '#b29456', { at: [-0.027, y, 0.208 - Math.max(0, y - 0.16) * 0.24], line: 0.001 }));
+    part(torso, G.torus(0.09, 0.045), '#d9542c', { at: [0, 0.41, 0], rot: [Math.PI / 2, 0, 0] });
+    const scarf = part(torso, sweep([[0.07, 0.4, 0.1], [0.1, 0.31, 0.18], [0.12, 0.14, 0.2], [0.16, -0.035, 0.23]], [0.044, 0.045, 0.039, 0.033], 0.16, 16, 8), '#c55b32', { line: 0.002 });
+    part(torso, sweep([[-0.06, 0.4, -0.04], [-0.12, 0.28, -0.16], [-0.17, 0.13, -0.22], [-0.23, 0.07, -0.25]], [0.039, 0.043, 0.037, 0.029], 0.18, 16, 8), '#c55b32', { line: 0.002 });
+    const arms = [-1, 1].map(sd => {
+      const arm = new THREE.Group(); arm.position.set(0.19 * sd, 0.38, 0); torso.add(arm);
+      part(arm, G.capsule(0.05, 0.26), '#2b3868', { at: [0, -0.16, 0] });
+      part(arm, G.sphere(0.048), '#efc9a8', { at: [0, -0.33, 0], line: 0.0035 });
+      return arm;
+    });
+    // the pole in the right hand
+    const pole = new THREE.Group(); pole.position.set(0, -0.33, 0); arms[1].add(pole);
+    part(pole, G.cyl(0.012, 0.012, 1.3, 8), '#5a4632', { at: [0, 0.35, 0.02], line: 0.004 });
+    const wick = part(pole, G.sphere(0.02, 8, 6), '#ffb347', { at: [0, 1.0, 0.02], line: 0, mat: flat('#ffb347') });
+    // handkerchief in the left hand (red check), shown while he wipes his forehead
+    const hanky = part(arms[0], G.box(0.12, 0.1, 0.01), '#b8432c', { at: [0, -0.38, 0.03], line: 0.004 });
     hanky.visible = false;
-    const wick = new THREE.Object3D(); wick.position.set(0, 1.47 - P('pole').y, 0); slide.add(wick);
+    const neck = new THREE.Group(); neck.position.y = 0.43; torso.add(neck);
+    const head = new THREE.Group(); neck.add(head);
+    part(head, G.sphere(0.15, 24, 18), '#efc9a8', { at: [0, 0.13, 0] });
+    part(head, G.sphere(0.035, 10, 8), '#e8b596', { at: [0, 0.1, 0.15], line: 0.003 });
+    const eyes = [-1, 1].map(sd => eye(head, 0.055 * sd, 0.15, 0.14, 0.016, '#657779'));
+    [-1, 1].forEach(sd => part(head, G.capsule(0.012, 0.05), '#f4f1ea', { at: [0.058 * sd, 0.195, 0.13], rot: [0, 0, Math.PI / 2 + 0.2 * sd], line: 0.004 }));
+    // Soft cheek whiskers merge into a tapered, slightly asymmetric beard.
+    part(head, sweep([[0, 0.068, 0.075], [0, 0.006, 0.112], [0.005, -0.07, 0.11], [0.027, -0.11, 0.08]], [0.089, 0.096, 0.057, 0.001], 0.66), '#eee9d9', { line: 0.003 });
+    [-1, 1].forEach(sd => {
+      part(head, sweep([[sd * 0.12, 0.17, -0.025], [sd * 0.134, 0.1, -0.02], [sd * 0.104, 0.025, 0.059], [sd * 0.067, -0.015, 0.115]], [0.045, 0.043, 0.037, 0.008], 0.75), '#eee9d9', { line: 0.002 });
+      part(head, G.sphere(0.028, 12, 8), '#efc9a8', { at: [sd * 0.145, 0.11, 0.005], scale: [0.7, 1.2, 0.65], line: 0.002 });
+      part(head, sweep([[sd * 0.008, 0.075, 0.158], [sd * 0.039, 0.065, 0.157], [sd * 0.078, 0.044, 0.143], [sd * 0.089, 0.057, 0.119]], [0.016, 0.023, 0.017, 0.001], 0.7, 12, 8), '#f6f0df', { line: 0.002 });
+      stroke(head, [[sd * 0.062, 0.117, 0.135], [sd * 0.078, 0.113, 0.126], [sd * 0.087, 0.118, 0.115]], '#b58c70', 0.001);
+    });
+    // A drooping knitted stocking cap, with a red folded brim and red pompom.
+    const cap = new THREE.Group(); cap.position.set(0, 0.235, -0.015); head.add(cap);
+    part(cap, sweep([[0, -0.025, 0], [0, 0.055, -0.015], [0.036, 0.107, -0.065], [0.097, 0.086, -0.115], [0.13, 0.021, -0.125]], [0.139, 0.133, 0.104, 0.06, 0.017], 1, 20, 16), '#b94e31', { line: 0.003 });
+    part(cap, G.torus(0.138, 0.023), '#bd5734', { rot: [Math.PI / 2, 0, 0], scale: [1, 0.91, 1.3], line: 0.002 });
+    part(cap, G.sphere(0.041, 14, 10), '#ca653b', { at: [0.135, 0.0, -0.123], line: 0.003 });
+    for (let i = 0; i < 6; i++) {
+      const th = i * Math.PI / 3;
+      part(cap, G.sphere(0.017, 8, 6), '#ca653b', { at: [0.135 + Math.cos(th) * 0.032, Math.sin(th) * 0.033, -0.118], line: 0.001 });
+    }
     a.head = head; a.eyes = eyes; a.arms = arms; a.legs = legs; a.wick = wick; a.hanky = hanky; a.body = body; a.hips = hips; a.torso = torso;
-    a.headPoint = () => head.localToWorld(new THREE.Vector3(0, 0.14, 0));
+    a.headPoint = () => head.localToWorld(new THREE.Vector3(0, 0.12, 0));
     a.height = 1.35;
-    // resting grip: upper arm a little forward, forearm raised, the pole upright with its foot on the ground
-    const REST_UP = -0.3, REST_FORE = -1.35;
-    const UPPER = P('arm-').y - P('fore-').y, FORE = P('fore-').y - P('pole').y;
-    const gripY = P('arm-').y - UPPER * Math.cos(REST_UP) - FORE * Math.cos(REST_UP + REST_FORE);
-    slide.position.y += -(gripY - P('pole').y);
     a.update = (dt, t) => {
       a.phase += dt * 8 * a.walk;
       const sw = Math.sin(a.phase) * 0.5 * Math.min(1, a.walk);
       legs[0].rotation.x = sw; legs[1].rotation.x = -sw;
       body.position.y = Math.sin(t * 1.7) * 0.006;
-      // the pole arm: rest grip, or raised to the lamp (poseGoal.reach < -1)
-      const reach = a.poseGoal.reach != null && a.poseGoal.reach < -1 ? 1 : 0;
-      const up = a.ease('reachUp', reach ? -2.3 : REST_UP - sw * 0.2, dt, 0.3);
-      const fore = a.ease('reachFore', reach ? -0.35 : REST_FORE, dt, 0.3);
-      arms[0].rotation.set(up, 0, -0.12);
-      fores[0].rotation.x = fore;
-      pole.rotation.set(-(up + fore) + a.ease('poleTilt', reach ? 0.55 : 0, dt, 0.3), 0, 0.12);
-      // the other arm swings, or wipes the forehead with the handkerchief
-      const wipe = a.ease('wipe', a.poseGoal.wipe ? 1 : 0, dt, 0.25);
-      arms[1].rotation.set(sw * 0.8 * (1 - wipe) + 0.05 - wipe * (2.35 + Math.sin(t * 9) * 0.1), 0, 0.14 + wipe * 0.1);
-      arms[1].rotation.y = -wipe * 0.5;
-      fores[1].rotation.x = -0.25 - wipe * 1.55;
-      a.hanky.visible = wipe > 0.5;
+      arms[1].rotation.x = a.ease('reach', a.poseGoal.reach != null ? a.poseGoal.reach : -0.25, dt, 0.3);
+      arms[1].rotation.z = 0.15;
+      arms[0].rotation.x = a.ease('wipe', a.poseGoal.wipe ? -2.5 : 0.1, dt, 0.25) + (a.poseGoal.wipe ? Math.sin(t * 9) * 0.15 : 0);
+      arms[0].rotation.z = -0.15 - (a.poseGoal.wipe ? 0.35 : 0);
+      a.hanky.visible = !!a.poseGoal.wipe;
       a.look.lerp(a.lookGoal, 1 - Math.exp(-dt / 0.3));
       head.rotation.y = a.look.x + (a.talk > 0.2 ? Math.sin(t * 2.7) * 0.07 * a.talk : 0);
       head.rotation.x = a.look.y + (a.talk > 0.2 ? Math.sin(t * 5.3) * 0.05 * a.talk : 0);
@@ -455,36 +481,57 @@ window.LP_FILM_3D_KIT = function (THREE) {
     return a;
   }
 
+  function rosePetal(width, height, curl) {
+    // Elliptical discs with a cupped surface and a rolled lip: no pointed corners.
+    const vertices = [], indices = [], rings = 5, sides = 16, row = sides + 1, layer = (rings + 1) * row;
+    for (let side = 0; side < 2; side++) for (let j = 0; j <= rings; j++) for (let i = 0; i <= sides; i++) {
+      const r = j / rings, angle = i / sides * Math.PI * 2;
+      const x = Math.cos(angle) * r * width, t = 0.5 + Math.sin(angle) * r * 0.5;
+      vertices.push(x, t * height,
+        curl * t * t + (x / width) ** 2 * 0.018 - t ** 7 * 0.018 + (side ? -0.0012 : 0.0012));
+    }
+    for (let j = 0; j < rings; j++) for (let i = 0; i < sides; i++) {
+      const a = j * row + i, b = a + row;
+      indices.push(a, b, a + 1, b, b + 1, a + 1);
+      indices.push(a + layer, a + 1 + layer, b + layer, b + layer, a + 1 + layer, b + 1 + layer);
+    }
+    for (let i = 0; i < sides; i++) {
+      const a = rings * row + i, b = a + 1;
+      indices.push(a, a + layer, b, b, a + layer, b + layer);
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geo.setIndex(indices); geo.computeVertexNormals(); return geo;
+  }
+
   // ------------------------------------------------------------------ the rose
-  // (images/characters/rose.jpg) grows from a shoot to a bud to the open flower (stage 0 → 2): a full red rose with
-  // ruffled petals, an olive stem with four thorns and three serrated leaves on short stalks; sways and "breathes"
-  // when she speaks. The stem, leaf, thorn, petal and sepal shapes come from Blender; they are placed here.
+  // grows from a shoot to a bud to the open flower (stage 0 → 2); four thorns; sways and "breathes" when she speaks
   function rose() {
     const root = new THREE.Group();
     const a = actorBase(root);
     a.stage = 2; a.stageNow = 2;
-    const stem = templatePart(root, 'rose', 'stem');
-    const leaves = [[-1, 0.28, 0.3], [1, 0.4, -0.5], [-1, 0.52, 2.6]].map(([sd, y, turn]) => {
-      const l = new THREE.Group(); l.position.set(0, y, 0); root.add(l);
-      const tilt = new THREE.Group(); tilt.rotation.set(0, turn, 0); l.add(tilt);
-      const lean = new THREE.Group(); lean.rotation.z = -sd * 0.95; tilt.add(lean);
-      templatePart(lean, 'rose', 'leaf'); templatePart(lean, 'rose', 'leafvein');
+    const stem = part(root, G.cyl(0.012, 0.016, 1, 8), '#4d8a3c', { at: [0, 0.5, 0], line: 0.005 });
+    const leaves = [[-1, 0.3], [1, 0.45]].map(([sd, y]) => {
+      const l = new THREE.Group(); l.position.set(0, y, 0); l.rotation.z = -sd * 0.95; root.add(l);
+      const shape = new THREE.Shape(); shape.moveTo(0, 0);
+      for (let i = 1; i <= 12; i++) { const t = i / 12; shape.lineTo(Math.sin(t * Math.PI) * (i % 2 ? 0.041 : 0.033), t * 0.18); }
+      for (let i = 11; i >= 0; i--) { const t = i / 12; shape.lineTo(-Math.sin(t * Math.PI) * (i % 2 ? 0.041 : 0.033), t * 0.18); }
+      part(l, new THREE.ExtrudeGeometry(shape, { depth: 0.003, bevelEnabled: false }), '#608448', { line: 0.0015 });
+      stroke(l, [[0, 0, 0.005], [0, 0.09, 0.005], [0, 0.176, 0.005]], '#b1ac61', 0.0012);
+      for (let i = 1; i <= 3; i++) [-1, 1].forEach(side => stroke(l, [[0, i * 0.036, 0.005], [side * 0.021, i * 0.036 + 0.024, 0.005]], '#839957', 0.0007));
       return l;
     });
-    const thorns = [[0.35, 0], [0.5, 2.2], [0.62, 3.9], [0.72, 1.1]].map(([y, turn]) => {
-      const th = new THREE.Group(); th.rotation.y = turn; root.add(th);
-      const m = templatePart(th, 'rose', 'thorn'); m.position.x = 0.008;
-      return th;
-    });
+    const thorns = [[0.35, 1], [0.5, -1], [0.62, 1], [0.72, -1]].map(([y, sd]) =>
+      part(root, sweep([[sd * 0.008, -0.016, 0], [sd * 0.021, 0, 0], [sd * 0.049, 0.008, 0]], [0.009, 0.007, 0.0002], 0.8, 6, 6), '#675536', { line: 0.0015 }));
     const bloom = new THREE.Group(); root.add(bloom);
     const petals = [];
-    part(bloom, G.sphere(0.036, 14, 10), '#a2302b', { at: [0, 0.019, 0], scale: [1, 1.35, 1], line: 0.002 });
-    const colors = ['#a92f2b', '#b83a31', '#c6473a', '#cf5442'];
+    part(bloom, G.sphere(0.036, 14, 10), '#a63430', { at: [0, 0.019, 0], scale: [1, 1.35, 1], line: 0.002 });
+    const colors = ['#ae3430', '#c04737', '#ce5940', '#d66a4a'];
     for (let ring = 0; ring < 4; ring++) {
       const count = 5 + ring;
+      const geo = rosePetal(0.027 + ring * 0.011, 0.074 + ring * 0.012, 0.022 + ring * 0.011);
       for (let i = 0; i < count; i++) {
         const p = new THREE.Group(); p.rotation.y = i / count * Math.PI * 2 + ring * 0.73; bloom.add(p);
-        const leaf = templatePart(p, 'rose', 'petal' + ring, colors[ring]);
+        const leaf = part(p, geo, colors[ring], { line: 0.0011 });
         petals.push({ g: p, leaf, ring, offset: Math.sin(i * 2.4 + ring) * 0.06 });
       }
     }
@@ -499,13 +546,13 @@ window.LP_FILM_3D_KIT = function (THREE) {
     }
     spiralGeo.setAttribute('position', new THREE.Float32BufferAttribute(spiralVertices, 3)); spiralGeo.setIndex(spiralIndices); spiralGeo.computeVertexNormals();
     const heart = new THREE.Group(); bloom.add(heart);
-    part(heart, spiralGeo, '#b8392f', { mat: toon('#b8392f', { side: THREE.DoubleSide }), line: 0 });
+    part(heart, spiralGeo, '#c3543c', { mat: toon('#c3543c', { side: THREE.DoubleSide }), line: 0 });
     const rimCurve = new THREE.CatmullRomCurve3(lip.map(p => new THREE.Vector3(...p)));
-    part(heart, new THREE.TubeGeometry(rimCurve, 64, 0.0011, 4, false), '#6e2a22', { line: 0 });
+    part(heart, new THREE.TubeGeometry(rimCurve, 64, 0.0011, 4, false), '#793a29', { line: 0 });
     const sepals = new THREE.Group(); bloom.add(sepals);
     for (let i = 0; i < 5; i++) {
-      const g = new THREE.Group(); g.rotation.y = i / 5 * Math.PI * 2 + 0.3; sepals.add(g);
-      templatePart(g, 'rose', 'sepal');
+      const g = new THREE.Group(); g.rotation.y = i / 5 * Math.PI * 2; sepals.add(g);
+      part(g, sweep([[0, -0.038, 0], [0, -0.035, 0.047], [0, -0.061, 0.093]], [0.019, 0.024, 0.0002], 0.25, 8, 8), '#608448', { line: 0.0015 });
     }
     a.bloom = bloom; a.eyes = [];
     a.headPoint = () => bloom.localToWorld(new THREE.Vector3(0, 0, 0));
@@ -516,14 +563,14 @@ window.LP_FILM_3D_KIT = function (THREE) {
       const s = THREE.MathUtils.clamp(a.stageNow, 0, 2);
       stem.visible = bloom.visible = a.stageNow >= 0;
       const h = 0.25 + Math.min(1, s) * 0.55;
-      stem.scale.set(1, h, 1);
-      leaves.forEach((l, i) => { l.visible = s > 0.2 + i * 0.25; l.position.y = h * (0.3 + i * 0.17); l.scale.setScalar(Math.min(1, 0.5 + s * 0.5)); });
+      stem.scale.set(1, h, 1); stem.position.y = h / 2;
+      leaves.forEach((l, i) => { l.visible = s > 0.2 + i * 0.3; l.position.y = h * (0.35 + i * 0.2); });
       thorns.forEach((th, i) => { th.visible = s > 0.8; th.position.y = h * (0.4 + i * 0.13); th.scale.setScalar(1 + (a.poseGoal.thorns ? 0.6 + Math.sin(t * 8) * 0.2 : 0)); });
       bloom.position.y = h + 0.03;
       const open = Math.max(0, s - 1);           // 0 = bud, 1 = open
       bloom.scale.setScalar(0.35 + Math.min(1, s) * 0.45 + open * 0.3);
       petals.forEach(p => {
-        p.leaf.rotation.x = -0.30 + open * (0.3 + p.ring * 0.27) + p.offset * open;
+        p.leaf.rotation.x = -0.30 + open * (0.31 + p.ring * 0.14) + p.offset * open;
         p.leaf.position.set(0, 0.04 - p.ring * 0.019, 0.006 + p.ring * (0.005 + open * 0.009));
       });
       sepals.visible = s > 0.3;
@@ -568,20 +615,19 @@ window.LP_FILM_3D = (function () {
     if (failed) return false;
     try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; }
   }
-  // load three.js and the character meshes (models3d.js) on first use: plain scripts, so it also works from file://
+  // load three.js on first use (a plain script, so it also works from file://)
   function ensure(base) {
     if (ready) return Promise.resolve(true);
     if (loading) return loading;
-    const load = (src, have) => new Promise((ok, fail) => {
-      if (have()) return ok();
+    loading = new Promise((resolve) => {
+      const go = () => { try { init(); ready = true; resolve(true); } catch (e) { console.warn('[film3d]', e); failed = true; resolve(false); } };
+      if (window.THREE) return go();
       const s = document.createElement('script');
-      s.src = (base || '') + src; s.onload = ok; s.onerror = fail;
+      s.src = (base || '') + 'vendor/three.min.js';
+      s.onload = go;
+      s.onerror = () => { failed = true; resolve(false); };
       document.head.appendChild(s);
     });
-    loading = load('vendor/three.min.js', () => window.THREE)
-      .then(() => load('models3d.js', () => window.LP_FILM_MODELS))
-      .then(() => { init(); ready = true; return true; })
-      .catch((e) => { console.warn('[film3d]', e); failed = true; return false; });
     return loading;
   }
   function init() {
