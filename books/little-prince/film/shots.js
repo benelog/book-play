@@ -25,7 +25,7 @@ window.LP_FILM_SHOTS = {
   'chapter-17': { tone: 'desert-night', focus: [0.38, 0.46], prince: [0.38, 0.46], snake: [0.62, 0.69] },
   'chapter-18': { tone: 'desert-day', focus: [0.58, 0.26], prince: [0.58, 0.26], desertflower: [0.42, 0.63] },
   'chapter-19': { tone: 'day', focus: [0.22, 0.19], prince: [0.22, 0.19] },
-  'chapter-20': { tone: 'day', focus: [0.62, 0.53], prince: [0.62, 0.53], roses: [0.2, 0.55] },
+  'chapter-20': { tone: 'day', focus: [0.67, 0.53], prince: [0.67, 0.53], roses: [0.2, 0.55] },
   'chapter-21': { tone: 'sunset', focus: [0.34, 0.44], prince: [0.34, 0.44], fox: [0.75, 0.46] },
   'chapter-22': { tone: 'night', focus: [0.39, 0.42], prince: [0.39, 0.42], switchman: [0.52, 0.3] },
   'chapter-23': { tone: 'desert-day', focus: [0.36, 0.38], prince: [0.36, 0.38], merchant: [0.69, 0.21] },
