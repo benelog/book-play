@@ -70,7 +70,7 @@ window.LP_FILM_SHOTS = {
   '07-f3': { tone: 'space', focus: [0.55, 0.29], businessman: [0.55, 0.29] },
   '07-f4': { tone: 'desert-night', focus: [0.38, 0.34], pilot: [0.34, 0.2], prince: [0.38, 0.34] },
   '08-f1': { tone: 'day', focus: [0.23, 0.71] },
-  '08-f2': { tone: 'day', focus: [0.57, 0.4], prince: [0.57, 0.4], rose: [0.36, 0.21] },
+  '08-f2': { tone: 'day', focus: [0.57, 0.4], prince: [0.57, 0.4], rose: [0.31, 0.21] },
   '08-f3': { tone: 'day', focus: [0.28, 0.32], prince: [0.55, 0.3], rose: [0.28, 0.32] },
   '09-f2': { tone: 'day', focus: [0.23, 0.37], rose: [0.23, 0.37], prince: [0.75, 0.29] },
   '10-f2': { tone: 'space', focus: [0.67, 0.5], king: [0.31, 0.19], prince: [0.67, 0.5] },
