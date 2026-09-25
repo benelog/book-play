@@ -187,7 +187,6 @@ button { cursor: pointer; }
 .title-page .menu .btn { border-color: var(--ink-soft); color: var(--ink); text-align: left; padding: 8px 14px; }
 .title-page .menu a.btn { display: block; text-decoration: none; }
 .title-page .menu .film-link { border-color: var(--gold-deep); }
-.title-page .menu .film-3d { border-style: dashed; }
 .title-page .menu .btn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
 .title-page .menu .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .title-page .menu .btn.primary:hover { background: #45434f; color: var(--paper); }

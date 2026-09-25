@@ -37,59 +37,17 @@
 - **PWA** — `manifest.webmanifest`와 `sw.js`가 있어 Chrome·Edge·Android에서 앱으로 설치할 수 있습니다(서재 하단 "Install app" 버튼, iOS는 공유 → 홈 화면에 추가). 서비스 워커는 앱 껍데기를 미리 캐시하고, 열어 본 책 파일을 방문할 때마다 캐시하므로 한 번 본 장은 오프라인에서도 열립니다.
   책 제목 페이지의 "Save for offline"은 그 책의 `scenes.js`·본문·장별 삽화를 한 번에 저장합니다. 새 버전을 배포하면 "A new version of Book Play is ready" 토스트가 뜨고 Reload로 갱신합니다. `file://`에서는 서비스 워커가 없으므로 이 기능만 빠지고 나머지는 그대로 동작합니다.
 
-- **어린 왕자 영화(Film)** — 어린 왕자 제목 페이지에서 엽니다. 두 가지 판이 있습니다.
-  - **삽화판** `books/little-prince/film/index.html` — "▶ Watch the whole book as a film". 헌사부터 27장 끝까지 번역문 전체를 자막으로 보여 주고 브라우저 음성으로 읽습니다.
-    화자(조종사)의 서술과 등장인물의 대사를 나눠, 인물마다 한 가지 목소리(음색·높낮이)와 자막 색을 씁니다. 장 삽화와 본문 속 그림(`images/pictures/`)이 별이 뜬 공간에 판처럼 떠 있고, 카메라가 판 사이를 날아가며 말하는 인물 쪽으로 다가갑니다.
-    CSS 3D로 만들었습니다. `file://`에서는 WebGL이 로컬 이미지를 텍스처로 쓸 수 없기 때문입니다.
-  - **3D 캐릭터판(제작 중)** `film/3d.html` — 8·9·14·21장은 움직이는 3D 인물이 연기합니다(three.js). 나머지 장은 아직 장면이 없어 글자 페이지로만 보여 줍니다. 삽화판과 인물 모습이 달라서 판을 나눴습니다.
-    인물은 기본 도형으로 만든 툰 셰이딩 모델이라 이미지 텍스처가 없고, 그래서 `file://`에서도 동작합니다. 말하는 인물은 입이 움직이고 카메라가 그 인물에게 다가가며, 본문 구절에 맞춰 동작합니다(장미가 피고, 점등인이 가로등을 켜면 밤이 되고, 여우가 날마다 조금씩 다가옵니다).
-  - 공통: 음성이 없는 브라우저에서는 자막만으로 진행합니다. 스페이스 재생/정지, ← → 문장, [ ] 장, f 전체 화면. 이어 보기 위치는 `lp.v1.little-prince.film`(삽화판), `lp.v1.little-prince.film3d`(3D판)에 저장합니다.
+- **어린 왕자 영화(Film)** `books/little-prince/film/index.html` — 어린 왕자 제목 페이지의 "▶ Watch the whole book as a film". 헌사부터 27장 끝까지 번역문 전체를 자막으로 보여 주고 브라우저 음성으로 읽습니다.
+  화자(조종사)의 서술과 등장인물의 대사를 나눠, 인물마다 한 가지 목소리(음색·높낮이)와 자막 색을 씁니다. 장 삽화와 본문 속 그림(`images/pictures/`)이 별이 뜬 공간에 판처럼 떠 있고, 카메라가 판 사이를 날아가며 말하는 인물 쪽으로 다가갑니다.
+  CSS 3D로 만들었습니다. `file://`에서는 WebGL이 로컬 이미지를 텍스처로 쓸 수 없기 때문입니다.
+  음성이 없는 브라우저에서는 자막만으로 진행합니다. 스페이스 재생/정지, ← → 문장, [ ] 장, f 전체 화면. 이어 보기 위치는 `lp.v1.little-prince.film`에 저장합니다.
 
-## 책
-
-현재 등록된 책 (`js/library.js`):
-
-| id | 책 | 장 | 원문·삽화 |
-|---|---|---|---|
-| little-prince | The Little Prince | 27 | 프랑스어 원문(Gutenberg Australia)을 AI로 새로 옮긴 영역본. 장 삽화·본문 속 그림은 자체 생성 |
-| wizard-of-oz | The Wonderful Wizard of Oz | 24 | 퍼블릭 도메인, Gutenberg #55 / #43936 |
-| alice-in-wonderland | Alice's Adventures in Wonderland | 12 | 퍼블릭 도메인, Gutenberg #11 / #114 |
-| peter-rabbit | The Tales of Peter Rabbit and Friends | 10 | 퍼블릭 도메인, 이야기마다 Gutenberg 전자책 하나 |
-| grimms-fairy-tales | Grimm's Fairy Tales | 12 | 퍼블릭 도메인, Gutenberg #2591 + Rackham 삽화 |
-| peter-pan | Peter and Wendy | 17 | 퍼블릭 도메인, Gutenberg #26654 + Bedford 삽화 |
-| red-raincoat | The Red Raincoat | 9 | CC BY 4.0, Pratham Books · StoryWeaver #369 (한 쪽이 한 장) |
-| efficiency-expert | The Efficiency Expert | 28 | 퍼블릭 도메인, Gutenberg #3475. 삽화는 자체 생성. 비즈니스 영어(면접·보고·협상) 연습용 |
-| sherlock-holmes | The Adventures of Sherlock Holmes | 12 | 퍼블릭 도메인, Gutenberg #1661 + Paget 삽화(Wikimedia Commons). 비즈니스 영어(의뢰·채용·협상) 연습용 |
-
-새 책을 추가하는 방법은 `books/README.md`를 보세요.
-폴더 하나(`books/<id>/`)에 `scenes.js`를 쓰고 `js/library.js`에 등록하면 서재에 나타납니다.
-
-등록된 책은 모두 퍼블릭 도메인이라 원문(`text/*.txt`, `text/book.js`)과 삽화(`images/chapter-NN.jpg`)를 저장소에 함께 둡니다.
-저작권이 남아 있는 책은 올리지 마세요. 어린 왕자는 예외입니다. 기존 영역본은 모두 보호 중이라 한국·EU에서 퍼블릭 도메인인 프랑스어 원문을 직접 번역해 싣습니다(원작은 미국 2039년·프랑스 2032년까지 보호). 자세한 내용은 `CLAUDE.md`를 보세요.
-
-## 파일
-
-```
-index.html            진입점
-start.sh              로컬 서버 실행 + 브라우저 열기
-css/style.css         화면 스타일
-js/app.js             서재·화면 전환·게임 흐름
-js/parser.js          텍스트를 장·문단·문장으로 분할
-js/matcher.js         자유 입력 답 판정
-js/tts.js             Web Speech API 래퍼
-js/dict.js            단어 사전 (Wiktionary · Free Dictionary API · MyMemory) + 팝오버
-js/pwa.js             서비스 워커 등록, 설치 버튼, 새 버전 토스트, 책 오프라인 저장
-js/storage.js         localStorage (책별 네임스페이스 + 전역 학습 이력·사전 캐시)
-js/library.js        책 목록(서재)
-manifest.webmanifest  PWA 매니페스트
-sw.js                 서비스 워커 (앱 껍데기 미리 캐시, 책 파일 런타임 캐시, 오프라인 라우팅)
 icons/                앱 아이콘 (icon.svg 원본, PNG는 ImageMagick으로 변환)
 books/README.md       책 추가 가이드
 books/_template/      scenes.js 템플릿
 books/little-prince/  어린 왕자: scenes.js, art.js(대체 SVG 삽화), text/, images/(pictures/ 본문 속 그림), film/(낭독 영화:
-                      index.html 삽화판, 3d.html 3D 캐릭터판, film.js 공통 재생, film.css, script.js 본문→대본,
-                      cast.js 인용마다 화자·인물별 목소리, shots.js 그림 속 인물 위치,
-                      film3d.js 움직이는 인물 모델과 3D 재생, scenes3d.js 3D로 연기하는 장, vendor/three.min.js three.js r159·MIT)
+                      index.html, film.js 재생, film.css, script.js 본문→대본,
+                      cast.js 인용마다 화자·인물별 목소리, shots.js 그림 속 인물 위치)
 books/wizard-of-oz/   오즈의 마법사: scenes.js, text/, images/ (원문·삽화 내려받기 안내는 각 README)
 books/alice-in-wonderland/, books/peter-rabbit/, books/grimms-fairy-tales/, books/peter-pan/, books/red-raincoat/, books/efficiency-expert/, books/sherlock-holmes/  같은 구조
 _redirects            정적 호스팅용 경로 재작성 규칙

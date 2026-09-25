@@ -160,12 +160,6 @@ ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldes
   built.chapters.forEach(c => c.beats.forEach(b => {
     if (b.picture) ok(fs.existsSync(path.join(booksDir, 'little-prince', 'images', 'pictures', b.picture + '.jpg')), `picture ${b.picture}: images/pictures/${b.picture}.jpg missing`);
   }));
-  // 3D scenes act on phrases of the text (scenes3d.js cues: [chapter, /phrase/, action]): each must still be found
-  const lines = built.chapters.map(c => c.beats.filter(b => b.lines).flatMap(b => b.lines.flatMap(l => l.parts.map(p => p.text))));
-  const src3d = fs.readFileSync(path.join(film, 'scenes3d.js'), 'utf8');
-  const cues = [...src3d.matchAll(/^\s*\[(\d+), \/(.+?)\/, /gm)];
-  ok(cues.length > 30, 'film 3D: cues found in scenes3d.js: ' + cues.length);
-  for (const [, ch, re] of cues) ok(lines[ch - 1].some(t => new RegExp(re).test(t)), `film 3D: cue /${re}/ matches no line of chapter ${ch}`);
 }
 
 console.log(fails ? `${fails} failure(s)` : 'all tests passed');

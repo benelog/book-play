@@ -7,11 +7,7 @@
 (function () {
   const P = window.LP_PARSER, S = window.LP_FILM_SCRIPT, CAST = window.LP_FILM_CAST, SHOTS = window.LP_FILM_SHOTS || {};
   const SCENES = window.LP_SCENES || [];
-  // Two films share this file. index.html is the illustrated film (chapter plates and every picture in the text).
-  // 3d.html sets window.LP_FILM_MODE = '3d': chapters with a 3D scene (film3d.js) are acted
-  // by moving characters, and the other chapters are shown as text until they get a scene.
-  const MODE = window.LP_FILM_MODE === '3d' ? '3d' : '2d';
-  const KEY = MODE === '3d' ? 'lp.v1.little-prince.film3d' : 'lp.v1.little-prince.film';
+  const KEY = 'lp.v1.little-prince.film';
   const $ = (id) => document.getElementById(id);
   const stage = $('stage'), world = $('world');
   const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -48,7 +44,6 @@
     steps.push({ kind: 'card', img, ch: c.num, title: sc.title || '', ko: sc.ko || '', say: `Chapter ${WORDS[c.num]}.`, para: 'c' + c.num });
     c.beats.forEach(b => {
       if (b.picture) {
-        if (MODE === '3d') return;
         img = b.picture; steps.push({ kind: 'picture', img, ch: c.num, alt: b.alt, para: 'p' + b.picture }); return;
       }
       b.lines.forEach(l => l.parts.forEach(p => {
@@ -202,8 +197,6 @@
   let last = performance.now(), t0 = last;
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
-    // while a 3D chapter plays (film3d.js) the boards are hidden: skip the work
-    if (document.body.classList.contains('in3d')) { requestAnimationFrame(frame); return; }
     const t = (now - t0) / 1000;
     const traveling = now < travelUntil;
     const k = 1 - Math.exp(-dt / (traveling ? 0.55 : 0.9));
@@ -324,7 +317,6 @@
   }
   function setPlaying(on) {
     playing = on;
-    if (F3D && F3D.ready) F3D.setPlaying(on);
     $('play').textContent = on ? '❚❚' : '▶';
     if (!on) stopAudio();
     else perform();
@@ -336,16 +328,6 @@
     stopAudio();
     cur = Math.max(0, Math.min(steps.length - 1, i));
     const step = steps[cur];
-    if (MODE === '3d') {
-      // 3D film: a scene with moving characters, or (chapters without one yet) the text on a page among the stars
-      const in3d = sync3d(step);
-      document.body.dataset.tone = 'space';
-      renderTextPage(step, in3d);
-      renderSubtitle(step);
-      if (!in3d) $('subtitle').classList.add('hide');
-      finishShow(step, autoplay);
-      return;
-    }
     const sh = shot(step.img);
     document.body.dataset.tone = sh.tone || 'space';
     // board and camera: the board we leave stays visible during the flight, then hides
@@ -386,52 +368,6 @@
     $('progress-fill').style.width = (cur / (steps.length - 1) * 100).toFixed(2) + '%';
     store.set({ i: cur, n: steps.length });
     if (autoplay && playing) perform();
-  }
-
-  // 3D film: chapters with a scene are drawn by film3d.js, their chapter card as an overlay
-  const F3D = window.LP_FILM_3D;
-  const want3d = (step) => MODE === '3d' && !!F3D && F3D.handles(step.ch) && F3D.supported();
-  function sync3d(step) {
-    let on = false;
-    if (want3d(step)) {
-      if (F3D.ready) on = F3D.show(steps, cur, playing);
-      else F3D.ensure('').then(ok => { if (ok && steps[cur] === step) { sync3d(step); } });
-    } else if (F3D) F3D.hide();
-    const card = $('over-card');
-    card.hidden = !(on && (step.kind === 'card' || step.kind === 'end'));
-    if (!card.hidden) {
-      const ko = $('ko-on').checked;
-      card.innerHTML = step.kind === 'end' ? '<div class="name">The End</div>'
-        : `<div class="num">CHAPTER ${ROMAN[step.ch]}</div><div class="name">${step.title}</div>${ko && step.ko ? `<div class="ko">${step.ko}</div>` : ''}`;
-    }
-    return on;
-  }
-
-  // 3D film, chapters without a scene: the whole paragraph on a page, the line being read highlighted
-  function renderTextPage(step, hidden) {
-    const page = $('textpage');
-    page.hidden = hidden;
-    if (hidden) return;
-    const ko = $('ko-on').checked;
-    const sc = SCENES.find(x => x.num === step.ch);
-    if (step.kind === 'title') { page.innerHTML = `<div class="name">${step.title}</div><div class="num">${step.by}</div><p class="note">${step.note}</p>`; return; }
-    if (step.kind === 'end') { page.innerHTML = '<div class="name">The End</div>'; return; }
-    if (step.kind === 'card') {
-      page.innerHTML = `<div class="num">CHAPTER ${ROMAN[step.ch]}</div><div class="name">${step.title}</div>${ko && step.ko ? `<div class="ko">${step.ko}</div>` : ''}` +
-        (F3D && F3D.handles(step.ch) && !F3D.supported() ? '<p class="note">This browser cannot show 3D here, so this chapter is shown as text.</p>' : '');
-      return;
-    }
-    let a = cur, b = cur;
-    while (a > 0 && steps[a - 1].para === step.para) a--;
-    while (b < steps.length - 1 && steps[b + 1].para === step.para) b++;
-    const c = CAST.characters[step.who] || CAST.characters.narrator;
-    const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-    page.innerHTML = `<div class="where">CHAPTER ${ROMAN[step.ch] || ''}${sc ? ' · ' + sc.title : ''}</div>` +
-      `<div class="who" style="--c:${c.color};visibility:${step.who === 'narrator' ? 'hidden' : 'visible'}">${c.name}${ko ? ' · ' + c.ko : ''}</div><p>` +
-      steps.slice(a, b + 1).map((st, k) => {
-        const cc = CAST.characters[st.who] || CAST.characters.narrator;
-        return `<span class="${a + k === cur ? 'now' : a + k < cur ? 'done' : ''}" style="--c:${st.who === 'narrator' ? '#f6ecd6' : cc.color}">${esc(st.text)}</span>`;
-      }).join(' ') + '</p>';
   }
 
   function renderSubtitle(step) {
@@ -483,7 +419,7 @@
   function buildMenu() {
     const ko = $('ko-on').checked;
     $('chapter-list').innerHTML = `<li><button data-ch="0" data-i="0"><span class="n">—</span>Title and dedication</button></li>` +
-      SCENES.map(sc => `<li><button data-ch="${sc.num}" data-i="${chapterStart[sc.num]}"><span class="n">${ROMAN[sc.num]}</span>${sc.title}${F3D && F3D.handles(sc.num) ? '<span class="d3">3D</span>' : ''}${ko ? `<span class="k">${sc.ko}</span>` : ''}</button></li>`).join('');
+      SCENES.map(sc => `<li><button data-ch="${sc.num}" data-i="${chapterStart[sc.num]}"><span class="n">${ROMAN[sc.num]}</span>${sc.title}${ko ? `<span class="k">${sc.ko}</span>` : ''}</button></li>`).join('');
     document.querySelectorAll('#chapter-list button').forEach(b => { b.onclick = () => { $('menu').hidden = true; show(+b.dataset.i, true); if (!playing) setPlaying(true); }; });
     renderWhere(steps[cur]);
   }
@@ -502,9 +438,7 @@
       const pt = (SHOTS[img] && (SHOTS[img][key] || SHOTS[img].focus)) || [0.5, 0.5];
       const px = ((pt[0] * K - 0.5) / (K - 1) * 100).toFixed(1), py = ((pt[1] * K * 0.75 - 0.5) / (K * 0.75 - 1) * 100).toFixed(1);
       const v = casting[id];
-      // the 3D film does not show the illustrations: a colour dot instead of a face
-      const face = MODE === '3d' ? '<span class="face dot"></span>'
-        : `<span class="face" style="background-image:url(${src(img)});background-size:${K * 100}% auto;background-position:${px}% ${py}%"></span>`;
+      const face = `<span class="face" style="background-image:url(${src(img)});background-size:${K * 100}% auto;background-position:${px}% ${py}%"></span>`;
       return `<li style="--c:${c.color}">${face}` +
         `<span><span class="nm">${c.name}</span><br><span class="vc">${$('ko-on').checked ? c.ko + ' · ' : ''}${v ? v.name.replace(/^(Microsoft|Google) /, '') : 'no voice'}${c.pitch !== 1 ? ` · pitch ${c.pitch}` : ''}</span></span></li>`;
     }).join('');
@@ -543,7 +477,6 @@
   }
   function start(i) {
     $('splash').hidden = true;
-    if (F3D && F3D.supported()) setTimeout(() => F3D.ensure(''), 1500);   // have three.js ready before chapter VIII
     show(i, false);
     setPlaying(true);
   }
