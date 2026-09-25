@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Little Prince · Film · Book Play</title>
+<meta name="description" content="The whole of The Little Prince as a narrated 3D picture film: every line of the English translation, voiced character by character.">
+<meta name="theme-color" content="#0b1230">
+<link rel="icon" href="../../../icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="film.css">
+</head>
+<body>
+<!-- 3D stage: the camera moves #world; picture panels, stars and planets live inside it (CSS 3D, so it also runs from file://) -->
+<div id="stage" aria-hidden="true">
+  <div id="world"></div>
+</div>
+<div id="vignette" aria-hidden="true"></div>
+
+<div id="subtitle" aria-live="polite">
+  <div class="who"></div>
+  <div class="line"></div>
+  <div class="ko"></div>
+</div>
+
+<header id="bar">
+  <a id="back" href="#">← Book</a>
+  <div class="title"><b>The Little Prince</b> <span id="where"></span></div>
+  <button id="cast-btn" type="button" title="Characters">Cast</button>
+  <button id="menu-btn" type="button" title="Chapters">Chapters</button>
+</header>
+
+<footer id="controls">
+  <div id="progress" title="Seek"><div id="progress-fill"></div></div>
+  <div class="row">
+    <button id="prev-ch" type="button" title="Previous chapter ( [ )">⏮</button>
+    <button id="prev" type="button" title="Previous line (←)">◀</button>
+    <button id="play" type="button" title="Play / pause (space)">▶</button>
+    <button id="next" type="button" title="Next line (→)">▶︎▶︎</button>
+    <button id="next-ch" type="button" title="Next chapter ( ] )">⏭</button>
+    <label class="opt"><input type="checkbox" id="voice-on" checked> Voices</label>
+    <label class="opt">Speed <input type="range" id="speed" min="0.7" max="1.4" step="0.05" value="1"></label>
+    <label class="opt" title="Korean chapter titles and character names"><input type="checkbox" id="ko-on"> 한국어 표시</label>
+    <button id="full" type="button" title="Full screen (f)">⛶</button>
+  </div>
+</footer>
+
+<div id="menu" class="sheet" hidden>
+  <h2>Chapters</h2>
+  <ol id="chapter-list"></ol>
+  <button class="close" type="button">Close</button>
+</div>
+<div id="cast" class="sheet" hidden>
+  <h2>Characters</h2>
+  <ul id="cast-list"></ul>
+  <p class="note">Each character keeps one voice and one colour for the whole film. Voices come from your browser's speech engine.</p>
+  <button class="close" type="button">Close</button>
+</div>
+
+<div id="splash">
+  <div class="card">
+    <h1>The Little Prince</h1>
+    <p class="by">Antoine de Saint-Exupéry</p>
+    <p>The whole book as a narrated picture film in 3D. Every line of the English translation is shown and spoken, each character in their own voice.</p>
+    <p class="small" id="voice-note"></p>
+    <div class="buttons">
+      <button id="start" type="button">▶ Start from the beginning</button>
+      <button id="resume" type="button" hidden>Continue</button>
+    </div>
+    <p class="small keys">Keys: space play/pause · ← → line · [ ] chapter · f full screen</p>
+  </div>
+</div>
+
+<script src="../../../js/parser.js"></script>
+<script src="../text/book.js"></script>
+<script src="../scenes.js"></script>
+<script src="cast.js"></script>
+<script src="shots.js"></script>
+<script src="script.js"></script>
+<script src="film.js"></script>
+</body>
+</html>

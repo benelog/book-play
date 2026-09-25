@@ -74,6 +74,8 @@ window.LP_PWA = (function () {
       const ids = r ? [...new Set([...(await r.text()).matchAll(/\[Picture ([\w-]+):/g)].map(m => m[1]))] : [];
       for (const id of ids) await put(`${dir}/images/pictures/${id}.jpg`);
     } catch (e) { /* no text */ }
+    // a book with a film (books/<id>/film/) keeps it too; the film page's own URL is its folder
+    if (await put(`${dir}/film/film.js`)) for (const f of ['', 'index.html', 'film.css', 'script.js', 'cast.js', 'shots.js']) await put(`${dir}/film/${f}`);
     for (const c of ['cover.jpg', 'cover.png', 'cover.webp']) if (await put(`${dir}/images/${c}`)) break;
     tick();
     for (let n = 1; n <= chapters; n++) {

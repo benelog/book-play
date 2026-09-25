@@ -140,5 +140,23 @@ ok(Array.isArray(S.getHistory()) && S.getHistory().length === 0, 'corrupt histor
 for (let i = 0; i < 305; i++) S.setDictEntry('w' + i, { found: true, meanings: [] });
 ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldest');
 
+// The Little Prince film: every quote has a known speaker, and the script keeps every word of the text
+{
+  const film = path.join(booksDir, 'little-prince', 'film');
+  require(path.join(film, 'script.js')); require(path.join(film, 'cast.js')); require(path.join(film, 'shots.js'));
+  const F = window.LP_FILM_SCRIPT, CAST = window.LP_FILM_CAST, SHOTS = window.LP_FILM_SHOTS;
+  const bk = {}; new Function('window', fs.readFileSync(path.join(booksDir, 'little-prince', 'text', 'book.js'), 'utf8'))(bk);
+  const parsed = P.parse(bk.LP_BOOK.text);
+  const built = F.build(parsed.chapters, CAST.speakers, P.picture);
+  ok(built.errors.length === 0, 'film: ' + built.errors.join('; '));
+  const letters = (t) => t.replace(/[^A-Za-z0-9]/g, '');
+  built.chapters.forEach(c => c.beats.forEach(b => {
+    if (b.picture) { ok(SHOTS[b.picture], `film: no shot data for picture ${b.picture}`); return; }
+    ok(letters(b.lines.map(l => l.parts.map(p => p.text).join('')).join('')) === letters(b.text), `film: ch${c.num} ¶${b.para} loses text`);
+    b.lines.forEach(l => ok(CAST.characters[l.who], `film: ch${c.num} unknown speaker ${l.who}`));
+  }));
+  for (let n = 1; n <= 27; n++) ok(SHOTS['chapter-' + String(n).padStart(2, '0')], `film: no shot data for chapter ${n}`);
+}
+
 console.log(fails ? `${fails} failure(s)` : 'all tests passed');
 process.exit(fails ? 1 : 0);

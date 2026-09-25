@@ -4,6 +4,7 @@
      art.js      (optional)  window.LP_ART = { chapter(n) -> svg string, cover() -> svg string }
      text/*.txt  (optional)  the book text; ./start.sh embeds it as text/book.js (window.LP_BOOK)
      images/chapter-NN.jpg   (optional)  illustrations, detected at runtime
+   film: path of a film page for the book (optional; only The Little Prince has one), linked from the title page
    See books/README.md for the scene data format. */
 window.LP_LIBRARY = [
   {
@@ -17,6 +18,7 @@ window.LP_LIBRARY = [
     ko: '어린 왕자',
     level: 'Beginner – Intermediate',
     dedication: { from: 'To Leon Werth' },   // shown on the title page, taken from the text file
+    film: 'books/little-prince/film/index.html',   // the narrated 3D picture film of the whole book (books/little-prince/film/)
     blurb: 'A pilot stranded in the Sahara meets a small visitor from asteroid B-612.',
     textNote: 'The English text is a new, complete translation made for this site directly from the 1943 French original, which is public domain in Korea and the EU. The story is still under copyright in the US (until 2039) and France (until 2032), and so are Saint-Exupéry\'s own drawings, which is why the pictures here are original.',
     credits: {
