@@ -1,14 +1,33 @@
-# 원문 텍스트 — The Little Prince (읽기 전용)
+# 원문 텍스트 — The Little Prince (자체 번역)
 
-`the-little-prince-jeff-mcneill.txt`는 Jeff McNeill의 영어 번역(2019)으로, **CC BY-NC-ND 4.0** 라이선스입니다.
-파일 머리말에 라이선스가 적혀 있습니다. 이 사이트는 다음 조건을 지켜 게시합니다.
+`the-little-prince.txt`는 이 사이트를 위해 **프랑스어 원문에서 직접 옮긴 영어 번역**(2026-09-25, AI 번역)입니다.
+원문은 Project Gutenberg Australia #0300771(`https://gutenberg.net.au/ebooks03/0300771h.html`, cp1252 인코딩)이고,
+헌사와 27장을 장별로 나눠 번역했습니다. 프랑스어 원문 파일은 저장소에 넣지 않습니다(원작이 미국 2039년·프랑스 2032년까지 보호).
 
-- **출처 표시**: 제목 화면의 "Sources & licences"와 읽기 화면 아래에 역자와 라이선스를 표시합니다.
-- **비상업**: 이 사이트에 광고나 유료 기능을 넣으면 안 됩니다.
-- **무수정**: 본문을 고치거나 줄이지 않습니다. 장 단위 분할과 TTS 낭독은 형식 변환이라 개작이 아닙니다.
-  그래서 이 책은 `readOnly: true`로 등록되어 게임 장면(Play)이 없습니다.
+기존 영역본(Katherine Woods 1943, Richard Howard 2000, Jeff McNeill 2019 등)은 모두 저작권이 있으므로 참고하지 않았습니다.
+본문을 고칠 때도 원문을 보고 고치고, 기존 영역본의 표현을 가져오지 마세요.
+`scenes.js`의 대사 인용도 이 파일의 표현을 따릅니다.
 
-영어 번역본 저작권 상황(2026년 기준): Katherine Woods 영역본(1943)은 역자 사망(1968) 기준으로 한국에서 2038년, 미국에서 2039년까지 보호됩니다.
-그 밖의 영역본도 모두 보호 중이라, 자유롭게 쓸 수 있는 영어판은 McNeill 번역(조건부)뿐입니다.
+## 형식
 
-파일 머리말은 원작과 그림이 퍼블릭 도메인이라고 적고 있지만, 미국에서는 2039년까지 보호되므로 그 문구를 근거로 삼지 마세요.
+- 첫 줄들은 제목·저자·번역 표기, 그다음 헌사(`To Leon Werth` … `when he was a little boy`), 그리고 장 제목 `I` … `XXVII`.
+- `[Picture 01-1: 설명]` 문단은 본문 속 그림입니다. `../images/pictures/01-1.jpg`로 표시되고 TTS는 건너뜁니다.
+  원서에서 그림을 가리키는 자리(보아뱀, 양, 상자, 소행성 …)와 인물이 처음 나오는 자리에 넣었습니다.
+- 원문에 있는 오류는 그대로 옮겼습니다(6장 "forty-four"/"forty-three", 13장 사업가의 계산).
+
+## 용어집
+
+| 프랑스어 | 영어 |
+|---|---|
+| grande(s) personne(s) | grown-up(s) |
+| le petit bonhomme | the little fellow |
+| sérieux, un homme sérieux | serious, a serious man |
+| apprivoiser / créer des liens | tame / to make bonds |
+| boas fermés / ouverts | boa constrictors from the outside / from the inside |
+| le vaniteux, le buveur, le businessman | the vain man, the drinker, the businessman |
+| l'allumeur de réverbères, le géographe | the lamplighter, the geographer |
+| l'aiguilleur, le marchand | the switchman, the merchant |
+| astéroïde B 612 | Asteroid B-612 |
+
+여우의 비밀: "We see clearly only with the heart. What matters most cannot be seen with the eyes." /
+"It is the time you gave to your rose that makes your rose so important." / "You are responsible forever for what you have tamed."

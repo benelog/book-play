@@ -16,14 +16,13 @@ window.LP_LIBRARY = [
     chapters: 27,
     ko: '어린 왕자',
     level: 'Beginner – Intermediate',
-    readOnly: true,
     dedication: { from: 'To Leon Werth' },   // shown on the title page, taken from the text file
     blurb: 'A pilot stranded in the Sahara meets a small visitor from asteroid B-612.',
-    textNote: 'Reading edition only. The English translation is CC BY-NC-ND, so the text is shown exactly as published. The dialogue scenes were written independently of the translation, but the story itself is still under copyright in the US (until 2039) and France (until 2032), so retelling it as a game is switched off there; the same is true of Saint-Exupéry\'s own drawings, which is why the pictures here are original.',
+    textNote: 'The English text is a new, complete translation made for this site directly from the 1943 French original, which is public domain in Korea and the EU. The story is still under copyright in the US (until 2039) and France (until 2032), and so are Saint-Exupéry\'s own drawings, which is why the pictures here are original.',
     credits: {
-      text: { what: 'English translation by Jeff McNeill (2019), shown unmodified', license: 'CC BY-NC-ND 4.0 — attribution, non-commercial, no derivatives', url: 'https://creativecommons.org/licenses/by-nc-nd/4.0/' },
+      text: { what: 'English translation made for this site from the French original (2026, AI-assisted)', license: 'No separate translator\'s licence; the French original is still under copyright in the US and France' },
       images: { what: 'Original watercolor-and-ink illustrations made for this site (2026)', license: 'AI-generated original compositions; not the author\'s drawings, which are protected in the US until 2039', url: 'https://en.wikipedia.org/wiki/The_Little_Prince#Copyright' },
-      original: { what: 'Original French text by Antoine de Saint-Exupéry (1943)', license: 'Public domain in Korea and the EU; protected in the US until 2039 and in France until 2032' }
+      original: { what: 'Original French text by Antoine de Saint-Exupéry (1943), from Project Gutenberg Australia #0300771', license: 'Public domain in Korea and the EU; protected in the US until 2039 and in France until 2032', url: 'https://gutenberg.net.au/ebooks03/0300771h.html' }
     },
   },
   {

@@ -1,7 +1,8 @@
 /* Splits a plain-text English edition into 27 chapters.
    Accepted heading styles (one per line, any case):
      Chapter 1 / CHAPTER I / Chapter One / 1 / I / 1. / XXI / Chapter 21: title
-   Or a manual delimiter: a line made only of "===" (three or more).            */
+   Or a manual delimiter: a line made only of "===" (three or more).
+   A picture inside a chapter is a paragraph of its own: "[Picture 01-1: alt text]" → images/pictures/01-1.jpg */
 window.LP_PARSER = (function () {
   const WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten',
     'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
@@ -49,6 +50,8 @@ window.LP_PARSER = (function () {
   // ends where a line is clearly shorter than the block's width and ends with a full stop or quote.
   const FRONT = /produced by|proofread|^note:|project gutenberg|https?:\/\/|author of|frederick warne|penguin|\bltd\b|\binc\b|copyright|rights reserved|printed|published|impression|berne convention|reproduced|retrieval system|transmitted|without limiting|permission of the publisher|\bisbn\b|library of congress|catalogu/i;
   const END = /[.!?…"”’')\]]$/;
+  const PICTURE = /^\[Picture ([\w-]+): ([^\]]*)\]$/;
+  function picture(p) { const m = String(p).trim().match(PICTURE); return m ? { id: m[1], alt: m[2].trim() } : null; }
   function splitRagged(block) {
     const ls = block.split('\n').map(l => l.trim()).filter(Boolean);
     if (ls.length < 4) return [ls.join(' ')];
@@ -105,7 +108,7 @@ window.LP_PARSER = (function () {
         let b = blocks[i];
         // only wrapped prose is glued: a long last line with lowercase letters that does not end a sentence
         const lastLine = () => b.trim().split('\n').pop().trim();
-        while (!END.test(lastLine()) && lastLine().length >= 45 && /[a-z]/.test(lastLine()) && !FRONT.test(lastLine()) && i + 1 < blocks.length) { b = b + '\n' + blocks[++i]; }
+        while (!END.test(lastLine()) && lastLine().length >= 45 && /[a-z]/.test(lastLine()) && !FRONT.test(lastLine()) && i + 1 < blocks.length && !picture(blocks[i + 1])) { b = b + '\n' + blocks[++i]; }
         merged.push(b);
       }
       paras = [];
@@ -202,5 +205,5 @@ window.LP_PARSER = (function () {
     return out;
   }
 
-  return { parse, sentences, headingNumber, VERSION: 5 };
+  return { parse, sentences, headingNumber, picture, VERSION: 6 };
 })();

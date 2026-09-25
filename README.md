@@ -21,7 +21,7 @@
 - **URL** — 경로 방식입니다: `/books/<id>` (책 제목 화면), `/books/<id>/chapters/<n>` (읽기), `/books/<id>/chapters/<n>/play` (대화 장면).
   `start.sh`의 서버(`tools/serve.py`)가 이 경로를 `index.html`로 연결합니다. 정적 호스팅에서는 `_redirects`(Cloudflare Pages·Netlify 형식)처럼 `/books/*`를 `index.html`로 보내는 규칙이 필요합니다.
   `index.html`을 file://로 직접 열면 같은 경로를 `#` 뒤에 붙입니다: `index.html#/books/<id>/chapters/3`.
-- **원문 읽기(Read)** — 장별 영어 원문과 TTS(브라우저 내장 음성 합성). 문장 단위로 강조됩니다. Gutenberg 텍스트의 `_밑줄_` 이탤릭 표기는 기울임체로 표시하고 음성에서는 뺍니다.
+- **원문 읽기(Read)** — 장별 영어 원문과 TTS(브라우저 내장 음성 합성). 문장 단위로 강조됩니다. Gutenberg 텍스트의 `_밑줄_` 이탤릭 표기는 기울임체로 표시하고 음성에서는 뺍니다. 본문의 `[Picture 01-1: 설명]` 문단은 `images/pictures/01-1.jpg` 그림으로 표시합니다(파일이 없으면 생략).
 - **단어 사전** — 본문의 단어를 클릭하면 팝오버에 영어 뜻(English Wiktionary), 한국어 뜻(한국어 위키낱말사전이 있으면 그것, 없으면 MyMemory 기계 번역), 발음(Free Dictionary API 녹음 또는 TTS)이 나옵니다. 팝오버의 "▶ Read from here"로 그 문장부터 읽기를 시작할 수 있고, Naver·Daum 사전 링크도 있습니다.
   `cyclones`·`carried`처럼 활용형은 원형을 찾아 함께 보여 줍니다. 찾은 결과는 localStorage(`lp.v1.dict`)에 캐시되어 오프라인에서도 다시 볼 수 있습니다. 코드는 `js/dict.js`.
   `readOnly: true`인 책은 Play 탭이 없고, 읽기 화면의 "Finished" 버튼으로 장을 완료합니다.
@@ -43,7 +43,7 @@
 
 | id | 책 | 장 | 원문·삽화 |
 |---|---|---|---|
-| little-prince | The Little Prince | 27 | 읽기 전용. McNeill 영역본(CC BY-NC-ND) 무수정 게시, 삽화는 자체 제작 SVG(`art.js`) |
+| little-prince | The Little Prince | 27 | 프랑스어 원문(Gutenberg Australia)을 AI로 새로 옮긴 영역본. 장 삽화·본문 속 그림은 자체 생성 |
 | wizard-of-oz | The Wonderful Wizard of Oz | 24 | 퍼블릭 도메인, Gutenberg #55 / #43936 |
 | alice-in-wonderland | Alice's Adventures in Wonderland | 12 | 퍼블릭 도메인, Gutenberg #11 / #114 |
 | peter-rabbit | The Tales of Peter Rabbit and Friends | 10 | 퍼블릭 도메인, 이야기마다 Gutenberg 전자책 하나 |
@@ -57,7 +57,7 @@
 폴더 하나(`books/<id>/`)에 `scenes.js`를 쓰고 `js/library.js`에 등록하면 서재에 나타납니다.
 
 등록된 책은 모두 퍼블릭 도메인이라 원문(`text/*.txt`, `text/book.js`)과 삽화(`images/chapter-NN.jpg`)를 저장소에 함께 둡니다.
-저작권이 남아 있는 책은 올리지 마세요. 어린 왕자는 영어 번역본이 모두 보호 중이라 게임 장면 없이 **읽기 전용**(`readOnly: true`)으로만 제공합니다. CC BY-NC-ND 조건에 따라 번역문을 고치지 않고, 사이트는 비영리로 유지해야 합니다.
+저작권이 남아 있는 책은 올리지 마세요. 어린 왕자는 예외입니다. 기존 영역본은 모두 보호 중이라 한국·EU에서 퍼블릭 도메인인 프랑스어 원문을 직접 번역해 싣습니다(원작은 미국 2039년·프랑스 2032년까지 보호). 자세한 내용은 `CLAUDE.md`를 보세요.
 
 ## 파일
 

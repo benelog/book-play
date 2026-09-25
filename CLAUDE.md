@@ -40,10 +40,14 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
 - Katherine Woods 영역본(1943)은 역자 사망(1968) 기준 한국에서 2038년까지 보호. Project Gutenberg·Wikimedia Commons·Faded Page·Gutenberg Australia 어디에도 자유로운 영어 번역본이 없습니다(캐나다·호주 아카이브에는 프랑스어 원문뿐).
 - 그래서 **완전히 자유로운(PD/CC0) 영어 번역본은 현재 존재하지 않습니다.**
 
-따라서 어린 왕자는 Jeff McNeill 영역본(CC BY-NC-ND 4.0)을 **무수정·출처 표시**로 게시하는 `readOnly: true` 책입니다.
-번역문을 고치지 말고, 사이트는 비영리로 유지하고, 생텍쥐페리 그림은 쓰지 마세요(삽화는 자체 생성). 번역 파일 머리말의 "원작·그림은 PD" 문구는 미국 기준으로 틀리므로 근거로 쓰지 마세요.
+2026-09-25에 McNeill 영역본(CC BY-NC-ND)을 빼고 **프랑스어 원문(Gutenberg Australia #0300771)에서 AI로 새로 옮긴 번역**으로 바꿨고, `readOnly`를 풀어 게임 장면도 켰습니다.
+Iraklis Lampadariou 영역본(Saita 2015, CC BY-NC 3.0)도 검토했지만 비영리 조건이 남고 "그리스 거주 독자 전용"으로 나온 판이라 쓰지 않았습니다.
 
-로컬에만 있던 McNeill 번역 `.txt`와 스캔 삽화 27장은 `~/source/benelog/little-prince-assets-backup/`에 옮겨 두었습니다(저장소에는 없음).
+- 번역은 원문에서만 옮기고 Woods·Howard·McNeill 등 기존 영역본 표현을 따르지 않습니다. 고칠 때도 마찬가지이고, 번역 지침(용어집)은 `books/little-prince/text/README.md`에 있습니다.
+- 원작 자체는 미국·프랑스에서 보호 중이라는 점은 그대로입니다. 프랑스어 원문 파일은 저장소에 넣지 않습니다.
+- 생텍쥐페리 그림은 쓰지 마세요. 장 삽화와 본문 속 그림(`images/pictures/`)은 모두 자체 생성이고, 본문이 묘사한 내용만 새 구도로 그립니다.
+
+McNeill 번역 `.txt`와 스캔 삽화 27장은 `~/source/benelog/little-prince-assets-backup/`에 있습니다(저장소에는 없음).
 
 ## 자산 만들기
 

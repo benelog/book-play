@@ -68,6 +68,12 @@ window.LP_PWA = (function () {
       return false;
     };
     for (const f of ['scenes.js', 'art.js', 'text/book.js']) { await put(`${dir}/${f}`); tick(); }
+    // pictures inside the text ([Picture 01-1: …] → images/pictures/01-1.jpg)
+    try {
+      const r = await cache.match(`${dir}/text/book.js`);
+      const ids = r ? [...new Set([...(await r.text()).matchAll(/\[Picture ([\w-]+):/g)].map(m => m[1]))] : [];
+      for (const id of ids) await put(`${dir}/images/pictures/${id}.jpg`);
+    } catch (e) { /* no text */ }
     for (const c of ['cover.jpg', 'cover.png', 'cover.webp']) if (await put(`${dir}/images/${c}`)) break;
     tick();
     for (let n = 1; n <= chapters; n++) {

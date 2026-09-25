@@ -534,6 +534,8 @@
     }
     const sentences = [];
     const html = ch.paragraphs.map(p => {
+      const pic = P.picture(p);   // [Picture 01-1: alt] → images/pictures/01-1.jpg, dropped if the file is missing
+      if (pic) return `<figure class="pic"><img src="${DIR}/images/pictures/${esc(pic.id)}.jpg" alt="${esc(pic.alt)}" loading="lazy" onerror="this.parentNode.remove()"></figure>`;
       return '<p>' + richSentences(p).map(s => { const i = sentences.push(s.text) - 1; return `<span class="s" data-i="${i}">${s.html}</span> `; }).join('') + '</p>';
     }).join('');
     body.innerHTML = `<div class="reader">

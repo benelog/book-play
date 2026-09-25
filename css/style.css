@@ -224,6 +224,8 @@ button { cursor: pointer; }
 .reader-text { padding: 16px 4px 10px; font-size: 17.5px; line-height: 1.8; max-height: 60vh; overflow-y: auto; color: var(--ink); }
 .reader-text p { margin: 0 0 1em; text-indent: 1.2em; }
 .reader-text p:first-child { text-indent: 0; }
+.reader-text .pic { margin: .4em auto 1.2em; text-align: center; }
+.reader-text .pic img { display: block; margin: 0 auto; width: 100%; max-width: 440px; height: auto; border-radius: 6px; }
 .reader-text .s { cursor: pointer; border-radius: 2px; transition: background .15s; }
 .reader-text .s:hover { background: rgba(217,180,90,.18); }
 .reader-text .s.now { background: var(--mark); }

@@ -22,7 +22,7 @@ books/<id>/
   textNote: 'Text and W. W. Denslow illustrations are public domain (Project Gutenberg #43936).' }
 ```
 
-`readOnly: true`를 붙이면 게임(Play) 없이 읽기 화면만 제공합니다. 번역본처럼 수정이 금지된 텍스트(CC BY-NC-ND 등)에 쓰세요. 이때도 `scenes.js`는 장 제목(`title`, `ko`) 때문에 필요하고, 장면은 표시되지 않습니다.
+`readOnly: true`를 붙이면 게임(Play) 없이 읽기 화면만 제공합니다. 수정이 금지된 텍스트(CC BY-NC-ND 번역본 등)에 쓰세요(지금은 쓰는 책이 없습니다). 이때도 `scenes.js`는 장 제목(`title`, `ko`) 때문에 필요하고, 장면은 표시되지 않습니다.
 
 ## 2. 장면 데이터 (`scenes.js`)
 
@@ -68,6 +68,7 @@ Project Gutenberg 텍스트라면 앞뒤의 라이선스 머리말·꼬리말을
 ## 4. 삽화
 
 `images/chapter-01.jpg` … 형식으로 넣으면 자동 표시됩니다 (jpg, jpeg, png, webp, gif, svg 순으로 찾음).
+본문 중간에 그림을 넣으려면 텍스트에 `[Picture 01-1: 대체 텍스트]`를 한 문단으로 쓰고 `images/pictures/01-1.jpg`를 둡니다. 읽기 화면에서 그 자리에 그림이 나오고, TTS는 건너뜁니다. "Save for offline"도 이 그림들을 함께 저장합니다.
 `art.js`가 있으면 `tools/gallery.html?book=<id>` 에서 대체 삽화를 미리 볼 수 있습니다.
 
 ## 저작권
