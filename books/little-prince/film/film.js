@@ -7,8 +7,8 @@
 (function () {
   const P = window.LP_PARSER, S = window.LP_FILM_SCRIPT, CAST = window.LP_FILM_CAST, SHOTS = window.LP_FILM_SHOTS || {};
   const SCENES = window.LP_SCENES || [];
-  // Two films share this file. index.html is the illustrated film (chapter plates, the book's pictures and extra film
-  // pictures from frames.js). 3d.html sets window.LP_FILM_MODE = '3d': chapters with a 3D scene (film3d.js) are acted
+  // Two films share this file. index.html is the illustrated film (chapter plates and every picture in the text).
+  // 3d.html sets window.LP_FILM_MODE = '3d': chapters with a 3D scene (film3d.js) are acted
   // by moving characters, and the other chapters are shown as text until they get a scene.
   const MODE = window.LP_FILM_MODE === '3d' ? '3d' : '2d';
   const KEY = MODE === '3d' ? 'lp.v1.little-prince.film3d' : 'lp.v1.little-prince.film';
@@ -21,8 +21,7 @@
   const WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen',
     'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty', 'Twenty-one', 'Twenty-two', 'Twenty-three', 'Twenty-four', 'Twenty-five', 'Twenty-six', 'Twenty-seven'];
   const pad = (n) => String(n).padStart(2, '0');
-  const src = (id) => id === 'cover' ? '../images/cover.jpg' : /^chapter-/.test(id) ? `../images/${id}.jpg`
-    : /-f\d+$/.test(id) ? `../images/film/${id}.jpg` : `../images/pictures/${id}.jpg`;
+  const src = (id) => id === 'cover' ? '../images/cover.jpg' : /^chapter-/.test(id) ? `../images/${id}.jpg` : `../images/pictures/${id}.jpg`;
   const store = {
     get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } },
     set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* private mode */ } }
@@ -42,11 +41,8 @@
     say: `${front[0] || 'The Little Prince'}. By ${front[1] || 'Antoine de Saint-Exupéry'}.`, para: 't' });
   front.slice(3).forEach((p, i) => narr(p, { img: 'cover', ch: 0, para: 'f' + i }).forEach(s => steps.push(s)));
 
-  // film pictures (2D only): each takes over from the line that contains its phrase
-  const FRAMES = MODE === '2d' ? (window.LP_FILM_FRAMES || []).map(f => Object.assign({}, f)) : [];
   built.chapters.forEach(c => {
     const sc = SCENES.find(x => x.num === c.num) || {};
-    const frames = FRAMES.filter(f => f.ch === c.num);
     let img = 'chapter-' + pad(c.num);
     chapterStart[c.num] = steps.length;
     steps.push({ kind: 'card', img, ch: c.num, title: sc.title || '', ko: sc.ko || '', say: `Chapter ${WORDS[c.num]}.`, para: 'c' + c.num });
@@ -56,8 +52,6 @@
         img = b.picture; steps.push({ kind: 'picture', img, ch: c.num, alt: b.alt, para: 'p' + b.picture }); return;
       }
       b.lines.forEach(l => l.parts.forEach(p => {
-        const f = frames.find(f => !f.used && p.text.includes(f.at));
-        if (f) { f.used = true; img = f.id; }
         steps.push({ kind: 'line', img, ch: c.num, who: l.who, text: p.text, say: p.say, para: c.num + '.' + b.para });
       }));
     });

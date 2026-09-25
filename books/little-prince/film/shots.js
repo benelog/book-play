@@ -2,7 +2,7 @@
    focus: the centre of interest for narration; <character>: the centre of that character's head (or the flower,
    the animal's head). While a character speaks the camera moves toward that point. tone sets the sky colour.
    Measured on grids drawn over the 1200x900 images (2026-09-25); re-measure a picture if its composition changes.
-   Film pictures may name extra people (explorer, traveller, grownups); the camera only goes to speakers in cast.js. */
+   Some pictures name extra people (explorer, traveller, grownups); the camera only goes to speakers in cast.js. */
 window.LP_FILM_SHOTS = {
   'cover': { tone: 'space', focus: [0.45, 0.3], prince: [0.45, 0.29], rose: [0.66, 0.65] },
   'chapter-01': { tone: 'interior', focus: [0.24, 0.34], boy: [0.24, 0.34], grownups: [0.57, 0.27] },
@@ -55,7 +55,7 @@ window.LP_FILM_SHOTS = {
   '21-1': { tone: 'day', focus: [0.39, 0.56], fox: [0.39, 0.56] },
   '26-1': { tone: 'desert-night', focus: [0.27, 0.56], prince: [0.27, 0.56] },
   '27-1': { tone: 'sunset', focus: [0.72, 0.17] },
-  // film pictures (images/film/, frames.js), measured the same way
+  // pictures added for the film (ids -f1 …), measured the same way
   '01-f1': { tone: 'day', focus: [0.58, 0.26], pilot: [0.58, 0.26] },
   '01-f2': { tone: 'interior', focus: [0.3, 0.13], pilot: [0.3, 0.13], grownups: [0.72, 0.32] },
   '02-f1': { tone: 'desert-night', focus: [0.79, 0.76], pilot: [0.79, 0.76] },
