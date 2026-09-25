@@ -193,6 +193,8 @@
   let last = performance.now(), t0 = last;
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    // while a 3D chapter plays (film3d.js) the boards are hidden: skip the work
+    if (document.body.classList.contains('in3d')) { requestAnimationFrame(frame); return; }
     const t = (now - t0) / 1000;
     const traveling = now < travelUntil;
     const k = 1 - Math.exp(-dt / (traveling ? 0.55 : 0.9));
@@ -313,6 +315,7 @@
   }
   function setPlaying(on) {
     playing = on;
+    if (F3D && F3D.ready) F3D.setPlaying(on);
     $('play').textContent = on ? '❚❚' : '▶';
     if (!on) stopAudio();
     else perform();
@@ -354,14 +357,37 @@
     } else if (step.kind === 'picture') scale = fit * 1.05;
     else scale = fit * 0.92;
     aim(step.img, point, scale);
+    // chapters with moving 3D characters
+    const in3d = sync3d(step);
     // cards
-    if (step.kind === 'card' || step.kind === 'title' || step.kind === 'end') showCard(step);
+    if (!in3d && (step.kind === 'card' || step.kind === 'title' || step.kind === 'end')) showCard(step);
     else if (cardEl) showCard(null);
     renderSubtitle(step);
     renderWhere(step);
     $('progress-fill').style.width = (cur / (steps.length - 1) * 100).toFixed(2) + '%';
     store.set({ i: cur, n: steps.length });
     if (autoplay && playing) perform();
+  }
+
+  // 3D chapters: the scene is drawn by film3d.js; chapter cards and the book's pictures appear as overlays
+  const F3D = window.LP_FILM_3D;
+  const want3d = (step) => !!F3D && $('three-on').checked && F3D.handles(step.ch) && F3D.supported();
+  function sync3d(step) {
+    let on = false;
+    if (want3d(step)) {
+      if (F3D.ready) on = F3D.show(steps, cur, playing);
+      else F3D.ensure('').then(ok => { if (ok && steps[cur] === step) { sync3d(step); } });
+    } else if (F3D) F3D.hide();
+    const card = $('over-card'), pic = $('over-pic');
+    card.hidden = !(on && (step.kind === 'card' || step.kind === 'end'));
+    if (!card.hidden) {
+      const ko = $('ko-on').checked;
+      card.innerHTML = step.kind === 'end' ? '<div class="name">The End</div>'
+        : `<div class="num">CHAPTER ${ROMAN[step.ch]}</div><div class="name">${step.title}</div>${ko && step.ko ? `<div class="ko">${step.ko}</div>` : ''}`;
+    }
+    pic.hidden = !(on && step.kind === 'picture');
+    if (!pic.hidden) pic.querySelector('img').src = src(step.img);
+    return on;
   }
 
   function renderSubtitle(step) {
@@ -398,6 +424,8 @@
   $('prev-ch').onclick = () => jumpChapter(-1);
   $('full').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); };
   $('voice-on').onchange = () => { if (playing) { stopAudio(); perform(); } };
+  $('three-on').onchange = () => { sync3d(steps[cur]); if (!$('three-on').checked || !F3D.handles(steps[cur].ch)) showCardIfNeeded(); };
+  function showCardIfNeeded() { const st = steps[cur]; if (st.kind === 'card' || st.kind === 'title' || st.kind === 'end') showCard(st); }
   $('ko-on').onchange = () => { renderSubtitle(steps[cur]); buildMenu(); };
   $('progress').onclick = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -413,7 +441,7 @@
   function buildMenu() {
     const ko = $('ko-on').checked;
     $('chapter-list').innerHTML = `<li><button data-ch="0" data-i="0"><span class="n">—</span>Title and dedication</button></li>` +
-      SCENES.map(sc => `<li><button data-ch="${sc.num}" data-i="${chapterStart[sc.num]}"><span class="n">${ROMAN[sc.num]}</span>${sc.title}${ko ? `<span class="k">${sc.ko}</span>` : ''}</button></li>`).join('');
+      SCENES.map(sc => `<li><button data-ch="${sc.num}" data-i="${chapterStart[sc.num]}"><span class="n">${ROMAN[sc.num]}</span>${sc.title}${F3D && F3D.handles(sc.num) ? '<span class="d3">3D</span>' : ''}${ko ? `<span class="k">${sc.ko}</span>` : ''}</button></li>`).join('');
     document.querySelectorAll('#chapter-list button').forEach(b => { b.onclick = () => { $('menu').hidden = true; show(+b.dataset.i, true); if (!playing) setPlaying(true); }; });
     renderWhere(steps[cur]);
   }
@@ -470,6 +498,7 @@
   }
   function start(i) {
     $('splash').hidden = true;
+    if (F3D && F3D.supported()) setTimeout(() => F3D.ensure(''), 1500);   // have three.js ready before chapter VIII
     show(i, false);
     setPlaying(true);
   }

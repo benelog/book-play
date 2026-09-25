@@ -156,6 +156,12 @@ ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldes
     b.lines.forEach(l => ok(CAST.characters[l.who], `film: ch${c.num} unknown speaker ${l.who}`));
   }));
   for (let n = 1; n <= 27; n++) ok(SHOTS['chapter-' + String(n).padStart(2, '0')], `film: no shot data for chapter ${n}`);
+  // 3D scenes act on phrases of the text (scenes3d.js cues: [chapter, /phrase/, action]): each must still be found
+  const lines = built.chapters.map(c => c.beats.filter(b => b.lines).flatMap(b => b.lines.flatMap(l => l.parts.map(p => p.text))));
+  const src3d = fs.readFileSync(path.join(film, 'scenes3d.js'), 'utf8');
+  const cues = [...src3d.matchAll(/^\s*\[(\d+), \/(.+?)\/, /gm)];
+  ok(cues.length > 30, 'film 3D: cues found in scenes3d.js: ' + cues.length);
+  for (const [, ch, re] of cues) ok(lines[ch - 1].some(t => new RegExp(re).test(t)), `film 3D: cue /${re}/ matches no line of chapter ${ch}`);
 }
 
 console.log(fails ? `${fails} failure(s)` : 'all tests passed');

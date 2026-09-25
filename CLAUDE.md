@@ -36,7 +36,10 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
   그림 판끼리 z 차이가 크면 가까운 판이 눈 뒤로 넘어가 화면을 가립니다. `stations`의 z 폭을 좁게 둡니다.
 - **본문의 큰따옴표 인용을 늘리거나 줄이면 `film/cast.js`의 화자 목록도 고쳐야 합니다.** `node tools/test.js`가 장별 개수를 맞춰 보고, `node tools/film-quotes.js <장> <장>`가 인용과 화자를 나란히 보여 줍니다.
 - 본문 속 그림이나 장 삽화의 구도를 바꾸면 `film/shots.js`의 인물 위치(0~1 비율)를 다시 잽니다.
-- 애니메이션은 이 컴퓨터의 Chrome 확장 탭에서 `requestAnimationFrame`이 돌지 않아 확인할 수 없었습니다. headless Chrome을 DevTools 프로토콜로 조작해 스크린숏으로 확인했습니다.
+- **움직이는 인물(8·9·14·21장)은 three.js r159**(`film/vendor/three.min.js`)입니다. r160부터는 일반 `<script>`로 불러올 빌드가 없어 `file://`에서 쓸 수 없으니 올리지 마세요. 파일 첫 줄의 폐기 경고(`console.warn`)는 `void 0`으로 지웠습니다.
+  인물은 기본 도형과 툰 셰이딩으로 만들고 이미지 텍스처를 쓰지 않습니다(`file://` 텍스처 제약). 모습은 `images/README.md`의 인물 표와 책의 눈 모양을 따릅니다.
+  장면의 동작은 본문 구절에 걸려 있습니다(`scenes3d.js`의 `[장, /구절/, 동작]`). 본문을 고쳐 구절이 사라지면 `node tools/test.js`가 알려 줍니다.
+- 애니메이션은 이 컴퓨터의 Chrome 확장 탭에서 `requestAnimationFrame`이 돌지 않아 확인할 수 없었습니다. headless Chrome을 DevTools 프로토콜로 조작해 스크린숏으로 확인했습니다(WebGL은 SwiftShader로 돌아가 초당 14프레임 정도이고, 부하가 크면 컨텍스트를 잃었다가 되찾습니다).
 
 ## 저작권 규칙
 

@@ -14,6 +14,10 @@
 <div id="stage" aria-hidden="true">
   <div id="world"></div>
 </div>
+<!-- chapters with moving characters (three.js, film3d.js + scenes3d.js) draw here instead -->
+<div id="stage3d" aria-hidden="true" hidden></div>
+<div id="over-card" aria-hidden="true" hidden></div>
+<div id="over-pic" hidden><img alt=""></div>
 <div id="vignette" aria-hidden="true"></div>
 
 <div id="subtitle" aria-live="polite">
@@ -38,6 +42,7 @@
     <button id="next" type="button" title="Next line (→)">▶︎▶︎</button>
     <button id="next-ch" type="button" title="Next chapter ( ] )">⏭</button>
     <label class="opt"><input type="checkbox" id="voice-on" checked> Voices</label>
+    <label class="opt" title="Chapters VIII, IX, XIV and XXI are played by moving 3D characters"><input type="checkbox" id="three-on" checked> 3D characters</label>
     <label class="opt">Speed <input type="range" id="speed" min="0.7" max="1.4" step="0.05" value="1"></label>
     <label class="opt" title="Korean chapter titles and character names"><input type="checkbox" id="ko-on"> 한국어 표시</label>
     <button id="full" type="button" title="Full screen (f)">⛶</button>
@@ -66,6 +71,7 @@
       <button id="start" type="button">▶ Start from the beginning</button>
       <button id="resume" type="button" hidden>Continue</button>
     </div>
+    <p class="small">Chapters VIII, IX, XIV and XXI are acted by moving 3D characters; the others show the illustrations.</p>
     <p class="small keys">Keys: space play/pause · ← → line · [ ] chapter · f full screen</p>
   </div>
 </div>
@@ -76,6 +82,8 @@
 <script src="cast.js"></script>
 <script src="shots.js"></script>
 <script src="script.js"></script>
+<script src="film3d.js"></script>
+<script src="scenes3d.js"></script>
 <script src="film.js"></script>
 </body>
 </html>
