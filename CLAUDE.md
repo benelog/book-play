@@ -31,13 +31,19 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
 
 ## 어린 왕자 영화 (`books/little-prince/film/`)
 
+- **삽화판(`index.html`)과 3D 캐릭터판(`3d.html`)은 따로 둡니다**(2026-09-25). 삽화 속 인물과 3D 모델의 모습이 많이 달라서, 한 영화에 섞지 않습니다.
+  두 판은 `film.js`를 함께 쓰고 `window.LP_FILM_MODE = '3d'`로 구분합니다. 3D판은 3D 장면이 없는 장을 글자 페이지로만 보여 줍니다(삽화를 쓰지 않음).
+  삽화판을 먼저 완성하고, 3D판은 나중에 다른 세션에서 이어 갑니다.
+- 삽화판의 영화용 그림(`images/film/<장>-f<번호>.jpg`, `frames.js`)도 Codex로 그립니다. 한 그림이 1분 30초 넘게 머물지 않도록 넣었고, 인물은 `images/README.md`의 인물 표를 따릅니다.
+
 - **CSS 3D로 만듭니다(WebGL 아님).** `file://`에서는 로컬 이미지가 교차 출처로 취급되어 WebGL 텍스처로 쓸 수 없고, ES 모듈도 불러올 수 없습니다.
   그림 판에 직각으로 붙는 면(두께용 옆면)을 넣으면 Chrome이 3D 정렬 중에 그림 레이어를 쪼개 일부가 사라집니다. 두께는 평행하게 겹친 층으로 냅니다.
   그림 판끼리 z 차이가 크면 가까운 판이 눈 뒤로 넘어가 화면을 가립니다. `stations`의 z 폭을 좁게 둡니다.
 - **본문의 큰따옴표 인용을 늘리거나 줄이면 `film/cast.js`의 화자 목록도 고쳐야 합니다.** `node tools/test.js`가 장별 개수를 맞춰 보고, `node tools/film-quotes.js <장> <장>`가 인용과 화자를 나란히 보여 줍니다.
 - 본문 속 그림이나 장 삽화의 구도를 바꾸면 `film/shots.js`의 인물 위치(0~1 비율)를 다시 잽니다.
 - **움직이는 인물(8·9·14·21장)은 three.js r159**(`film/vendor/three.min.js`)입니다. r160부터는 일반 `<script>`로 불러올 빌드가 없어 `file://`에서 쓸 수 없으니 올리지 마세요. 파일 첫 줄의 폐기 경고(`console.warn`)는 `void 0`으로 지웠습니다.
-  인물은 기본 도형과 툰 셰이딩으로 만들고 이미지 텍스처를 쓰지 않습니다(`file://` 텍스처 제약). 모습은 `images/README.md`의 인물 표와 책의 눈 모양을 따릅니다.
+  인물은 기본 도형과 툰 셰이딩으로 만들고 이미지 텍스처를 쓰지 않습니다(`file://` 텍스처 제약). 2026-09-25에 Codex가 인물 모델(키트 부분)을 한 번 다듬었습니다.
+  Codex 샌드박스에서는 Chrome을 띄울 수 없어 Codex가 직접 렌더링을 볼 수 없습니다. 결과는 headless Chrome으로 따로 찍어 확인하세요. 모습은 `images/README.md`의 인물 표와 책의 눈 모양을 따릅니다.
   장면의 동작은 본문 구절에 걸려 있습니다(`scenes3d.js`의 `[장, /구절/, 동작]`). 본문을 고쳐 구절이 사라지면 `node tools/test.js`가 알려 줍니다.
 - 애니메이션은 이 컴퓨터의 Chrome 확장 탭에서 `requestAnimationFrame`이 돌지 않아 확인할 수 없었습니다. headless Chrome을 DevTools 프로토콜로 조작해 스크린숏으로 확인했습니다(WebGL은 SwiftShader로 돌아가 초당 14프레임 정도이고, 부하가 크면 컨텍스트를 잃었다가 되찾습니다).
 
@@ -66,5 +72,6 @@ McNeill 번역 `.txt`와 스캔 삽화 27장은 `~/source/benelog/little-prince-
 - **앱 아이콘**: 원본은 `icons/icon.svg`. PNG는 ImageMagick `convert`로 만드는데, 내장 SVG 렌더러가 그라디언트를 무시하므로 `url(#…)`를 단색으로 바꾼 사본을 변환합니다. maskable 아이콘은 모서리 없는 배경 위에 80% 크기로 넣은 사본에서 만듭니다.
 - **삽화 생성**: 이 컴퓨터의 Codex CLI를 씁니다 — `codex exec --sandbox workspace-write -C <repo> -o result.md - < prompt.md` (한 번에 약 10분).
   생성한 그림은 1200px JPEG로 `books/<id>/images/chapter-NN.jpg`에 넣고, 표지는 `cover.jpg`(없으면 `chapter-01.jpg`가 표지로 쓰임).
+  어린 왕자 그림에는 인물 기준 이미지 `books/little-prince/images/characters/<인물>.jpg`(정면·좌우·뒷모습)를 참고 이미지로 함께 줍니다. 여러 장은 `xargs -P 5`로 나눠 병렬로 돌리면 한 장에 2~3분씩 걸립니다.
 - **StoryWeaver 책**: `/api/v1/stories/<slug>/read` JSON의 `pages[].html`에서 본문을, `coverImage.sizes`에서 삽화(959px)를 가져옵니다. 한 쪽이 한 장(chapter)입니다.
 - **여러 `.txt` 파일**(`01-*.txt`, `02-*.txt` …)은 `tools/embed-text.py`가 `===` 로 이어 붙여 장 단위로 만듭니다.

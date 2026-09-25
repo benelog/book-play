@@ -7,7 +7,11 @@
 (function () {
   const P = window.LP_PARSER, S = window.LP_FILM_SCRIPT, CAST = window.LP_FILM_CAST, SHOTS = window.LP_FILM_SHOTS || {};
   const SCENES = window.LP_SCENES || [];
-  const KEY = 'lp.v1.little-prince.film';
+  // Two films share this file. index.html is the illustrated film (chapter plates, the book's pictures and extra film
+  // pictures from frames.js). 3d.html sets window.LP_FILM_MODE = '3d': chapters with a 3D scene (film3d.js) are acted
+  // by moving characters, and the other chapters are shown as text until they get a scene.
+  const MODE = window.LP_FILM_MODE === '3d' ? '3d' : '2d';
+  const KEY = MODE === '3d' ? 'lp.v1.little-prince.film3d' : 'lp.v1.little-prince.film';
   const $ = (id) => document.getElementById(id);
   const stage = $('stage'), world = $('world');
   const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -17,7 +21,8 @@
   const WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen',
     'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty', 'Twenty-one', 'Twenty-two', 'Twenty-three', 'Twenty-four', 'Twenty-five', 'Twenty-six', 'Twenty-seven'];
   const pad = (n) => String(n).padStart(2, '0');
-  const src = (id) => id === 'cover' ? '../images/cover.jpg' : /^chapter-/.test(id) ? `../images/${id}.jpg` : `../images/pictures/${id}.jpg`;
+  const src = (id) => id === 'cover' ? '../images/cover.jpg' : /^chapter-/.test(id) ? `../images/${id}.jpg`
+    : /-f\d+$/.test(id) ? `../images/film/${id}.jpg` : `../images/pictures/${id}.jpg`;
   const store = {
     get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } },
     set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* private mode */ } }
@@ -37,14 +42,24 @@
     say: `${front[0] || 'The Little Prince'}. By ${front[1] || 'Antoine de Saint-Exupéry'}.`, para: 't' });
   front.slice(3).forEach((p, i) => narr(p, { img: 'cover', ch: 0, para: 'f' + i }).forEach(s => steps.push(s)));
 
+  // film pictures (2D only): each takes over from the line that contains its phrase
+  const FRAMES = MODE === '2d' ? (window.LP_FILM_FRAMES || []).map(f => Object.assign({}, f)) : [];
   built.chapters.forEach(c => {
     const sc = SCENES.find(x => x.num === c.num) || {};
+    const frames = FRAMES.filter(f => f.ch === c.num);
     let img = 'chapter-' + pad(c.num);
     chapterStart[c.num] = steps.length;
     steps.push({ kind: 'card', img, ch: c.num, title: sc.title || '', ko: sc.ko || '', say: `Chapter ${WORDS[c.num]}.`, para: 'c' + c.num });
     c.beats.forEach(b => {
-      if (b.picture) { img = b.picture; steps.push({ kind: 'picture', img, ch: c.num, alt: b.alt, para: 'p' + b.picture }); return; }
-      b.lines.forEach(l => l.parts.forEach(p => steps.push({ kind: 'line', img, ch: c.num, who: l.who, text: p.text, say: p.say, para: c.num + '.' + b.para })));
+      if (b.picture) {
+        if (MODE === '3d') return;
+        img = b.picture; steps.push({ kind: 'picture', img, ch: c.num, alt: b.alt, para: 'p' + b.picture }); return;
+      }
+      b.lines.forEach(l => l.parts.forEach(p => {
+        const f = frames.find(f => !f.used && p.text.includes(f.at));
+        if (f) { f.used = true; img = f.id; }
+        steps.push({ kind: 'line', img, ch: c.num, who: l.who, text: p.text, say: p.say, para: c.num + '.' + b.para });
+      }));
     });
   });
   steps.push({ kind: 'end', img: '27-1', ch: 27, para: 'end' });
@@ -327,6 +342,16 @@
     stopAudio();
     cur = Math.max(0, Math.min(steps.length - 1, i));
     const step = steps[cur];
+    if (MODE === '3d') {
+      // 3D film: a scene with moving characters, or (chapters without one yet) the text on a page among the stars
+      const in3d = sync3d(step);
+      document.body.dataset.tone = 'space';
+      renderTextPage(step, in3d);
+      renderSubtitle(step);
+      if (!in3d) $('subtitle').classList.add('hide');
+      finishShow(step, autoplay);
+      return;
+    }
     const sh = shot(step.img);
     document.body.dataset.tone = sh.tone || 'space';
     // board and camera: the board we leave stays visible during the flight, then hides
@@ -357,37 +382,62 @@
     } else if (step.kind === 'picture') scale = fit * 1.05;
     else scale = fit * 0.92;
     aim(step.img, point, scale);
-    // chapters with moving 3D characters
-    const in3d = sync3d(step);
-    // cards
-    if (!in3d && (step.kind === 'card' || step.kind === 'title' || step.kind === 'end')) showCard(step);
+    if (step.kind === 'card' || step.kind === 'title' || step.kind === 'end') showCard(step);
     else if (cardEl) showCard(null);
     renderSubtitle(step);
+    finishShow(step, autoplay);
+  }
+  function finishShow(step, autoplay) {
     renderWhere(step);
     $('progress-fill').style.width = (cur / (steps.length - 1) * 100).toFixed(2) + '%';
     store.set({ i: cur, n: steps.length });
     if (autoplay && playing) perform();
   }
 
-  // 3D chapters: the scene is drawn by film3d.js; chapter cards and the book's pictures appear as overlays
+  // 3D film: chapters with a scene are drawn by film3d.js, their chapter card as an overlay
   const F3D = window.LP_FILM_3D;
-  const want3d = (step) => !!F3D && $('three-on').checked && F3D.handles(step.ch) && F3D.supported();
+  const want3d = (step) => MODE === '3d' && !!F3D && F3D.handles(step.ch) && F3D.supported();
   function sync3d(step) {
     let on = false;
     if (want3d(step)) {
       if (F3D.ready) on = F3D.show(steps, cur, playing);
       else F3D.ensure('').then(ok => { if (ok && steps[cur] === step) { sync3d(step); } });
     } else if (F3D) F3D.hide();
-    const card = $('over-card'), pic = $('over-pic');
+    const card = $('over-card');
     card.hidden = !(on && (step.kind === 'card' || step.kind === 'end'));
     if (!card.hidden) {
       const ko = $('ko-on').checked;
       card.innerHTML = step.kind === 'end' ? '<div class="name">The End</div>'
         : `<div class="num">CHAPTER ${ROMAN[step.ch]}</div><div class="name">${step.title}</div>${ko && step.ko ? `<div class="ko">${step.ko}</div>` : ''}`;
     }
-    pic.hidden = !(on && step.kind === 'picture');
-    if (!pic.hidden) pic.querySelector('img').src = src(step.img);
     return on;
+  }
+
+  // 3D film, chapters without a scene: the whole paragraph on a page, the line being read highlighted
+  function renderTextPage(step, hidden) {
+    const page = $('textpage');
+    page.hidden = hidden;
+    if (hidden) return;
+    const ko = $('ko-on').checked;
+    const sc = SCENES.find(x => x.num === step.ch);
+    if (step.kind === 'title') { page.innerHTML = `<div class="name">${step.title}</div><div class="num">${step.by}</div><p class="note">${step.note}</p>`; return; }
+    if (step.kind === 'end') { page.innerHTML = '<div class="name">The End</div>'; return; }
+    if (step.kind === 'card') {
+      page.innerHTML = `<div class="num">CHAPTER ${ROMAN[step.ch]}</div><div class="name">${step.title}</div>${ko && step.ko ? `<div class="ko">${step.ko}</div>` : ''}` +
+        (F3D && F3D.handles(step.ch) && !F3D.supported() ? '<p class="note">This browser cannot show 3D here, so this chapter is shown as text.</p>' : '');
+      return;
+    }
+    let a = cur, b = cur;
+    while (a > 0 && steps[a - 1].para === step.para) a--;
+    while (b < steps.length - 1 && steps[b + 1].para === step.para) b++;
+    const c = CAST.characters[step.who] || CAST.characters.narrator;
+    const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    page.innerHTML = `<div class="where">CHAPTER ${ROMAN[step.ch] || ''}${sc ? ' · ' + sc.title : ''}</div>` +
+      `<div class="who" style="--c:${c.color};visibility:${step.who === 'narrator' ? 'hidden' : 'visible'}">${c.name}${ko ? ' · ' + c.ko : ''}</div><p>` +
+      steps.slice(a, b + 1).map((st, k) => {
+        const cc = CAST.characters[st.who] || CAST.characters.narrator;
+        return `<span class="${a + k === cur ? 'now' : a + k < cur ? 'done' : ''}" style="--c:${st.who === 'narrator' ? '#f6ecd6' : cc.color}">${esc(st.text)}</span>`;
+      }).join(' ') + '</p>';
   }
 
   function renderSubtitle(step) {
@@ -424,8 +474,6 @@
   $('prev-ch').onclick = () => jumpChapter(-1);
   $('full').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); };
   $('voice-on').onchange = () => { if (playing) { stopAudio(); perform(); } };
-  $('three-on').onchange = () => { sync3d(steps[cur]); if (!$('three-on').checked || !F3D.handles(steps[cur].ch)) showCardIfNeeded(); };
-  function showCardIfNeeded() { const st = steps[cur]; if (st.kind === 'card' || st.kind === 'title' || st.kind === 'end') showCard(st); }
   $('ko-on').onchange = () => { renderSubtitle(steps[cur]); buildMenu(); };
   $('progress').onclick = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -460,7 +508,10 @@
       const pt = (SHOTS[img] && (SHOTS[img][key] || SHOTS[img].focus)) || [0.5, 0.5];
       const px = ((pt[0] * K - 0.5) / (K - 1) * 100).toFixed(1), py = ((pt[1] * K * 0.75 - 0.5) / (K * 0.75 - 1) * 100).toFixed(1);
       const v = casting[id];
-      return `<li style="--c:${c.color}"><span class="face" style="background-image:url(${src(img)});background-size:${K * 100}% auto;background-position:${px}% ${py}%"></span>` +
+      // the 3D film does not show the illustrations: a colour dot instead of a face
+      const face = MODE === '3d' ? '<span class="face dot"></span>'
+        : `<span class="face" style="background-image:url(${src(img)});background-size:${K * 100}% auto;background-position:${px}% ${py}%"></span>`;
+      return `<li style="--c:${c.color}">${face}` +
         `<span><span class="nm">${c.name}</span><br><span class="vc">${$('ko-on').checked ? c.ko + ' · ' : ''}${v ? v.name.replace(/^(Microsoft|Google) /, '') : 'no voice'}${c.pitch !== 1 ? ` · pitch ${c.pitch}` : ''}</span></span></li>`;
     }).join('');
   }

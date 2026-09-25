@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Little Prince · Film · Book Play</title>
-<meta name="description" content="The whole of The Little Prince as a narrated 3D picture film: every line of the English translation, voiced character by character.">
+<meta name="description" content="The whole of The Little Prince as a narrated picture film: every line of the English translation, voiced character by character, with the book's illustrations.">
 <meta name="theme-color" content="#0b1230">
 <link rel="icon" href="../../../icons/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="film.css">
@@ -14,10 +14,6 @@
 <div id="stage" aria-hidden="true">
   <div id="world"></div>
 </div>
-<!-- chapters with moving characters (three.js, film3d.js + scenes3d.js) draw here instead -->
-<div id="stage3d" aria-hidden="true" hidden></div>
-<div id="over-card" aria-hidden="true" hidden></div>
-<div id="over-pic" hidden><img alt=""></div>
 <div id="vignette" aria-hidden="true"></div>
 
 <div id="subtitle" aria-live="polite">
@@ -28,6 +24,7 @@
 
 <header id="bar">
   <a id="back" href="#">← Book</a>
+  <a class="switch" href="3d.html" title="The film with moving 3D characters (work in progress)">3D version</a>
   <div class="title"><b>The Little Prince</b> <span id="where"></span></div>
   <button id="cast-btn" type="button" title="Characters">Cast</button>
   <button id="menu-btn" type="button" title="Chapters">Chapters</button>
@@ -42,7 +39,6 @@
     <button id="next" type="button" title="Next line (→)">▶︎▶︎</button>
     <button id="next-ch" type="button" title="Next chapter ( ] )">⏭</button>
     <label class="opt"><input type="checkbox" id="voice-on" checked> Voices</label>
-    <label class="opt" title="Chapters VIII, IX, XIV and XXI are played by moving 3D characters"><input type="checkbox" id="three-on" checked> 3D characters</label>
     <label class="opt">Speed <input type="range" id="speed" min="0.7" max="1.4" step="0.05" value="1"></label>
     <label class="opt" title="Korean chapter titles and character names"><input type="checkbox" id="ko-on"> 한국어 표시</label>
     <button id="full" type="button" title="Full screen (f)">⛶</button>
@@ -65,13 +61,13 @@
   <div class="card">
     <h1>The Little Prince</h1>
     <p class="by">Antoine de Saint-Exupéry</p>
-    <p>The whole book as a narrated picture film in 3D. Every line of the English translation is shown and spoken, each character in their own voice.</p>
+    <p>The whole book as a narrated picture film. Every line of the English translation is shown and spoken, each character in their own voice, among the book's illustrations.</p>
     <p class="small" id="voice-note"></p>
     <div class="buttons">
       <button id="start" type="button">▶ Start from the beginning</button>
       <button id="resume" type="button" hidden>Continue</button>
     </div>
-    <p class="small">Chapters VIII, IX, XIV and XXI are acted by moving 3D characters; the others show the illustrations.</p>
+    <p class="small">There is also a <a href="3d.html">version with moving 3D characters</a> (work in progress).</p>
     <p class="small keys">Keys: space play/pause · ← → line · [ ] chapter · f full screen</p>
   </div>
 </div>
@@ -81,9 +77,8 @@
 <script src="../scenes.js"></script>
 <script src="cast.js"></script>
 <script src="shots.js"></script>
+<script src="frames.js"></script>
 <script src="script.js"></script>
-<script src="film3d.js"></script>
-<script src="scenes3d.js"></script>
 <script src="film.js"></script>
 </body>
 </html>
