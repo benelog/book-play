@@ -379,10 +379,13 @@ mark.w-hit { background: var(--mark); color: inherit; border-radius: 2px; box-sh
 
 /* ---------- PWA: toast + offline row ---------- */
 .pwa-toast {
-  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 70; display: flex; gap: 12px; align-items: center;
+  /* left/right + auto margins, not left:50% + translate: that caps the shrink-to-fit width at half the screen */
+  position: fixed; left: 12px; right: 12px; bottom: 18px; width: fit-content; margin: 0 auto; z-index: 70; display: flex; gap: 12px; align-items: center;
   background: var(--paper); color: var(--ink); border: 1px solid var(--paper-shadow); border-radius: 4px; padding: 8px 10px 8px 14px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.45); font-size: 14px; max-width: calc(100vw - 24px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.45); font-size: 14px;
 }
+.pwa-toast[hidden] { display: none; } /* display:flex above would otherwise override the hidden attribute */
+.pwa-toast .btn, .pwa-toast .x { flex-shrink: 0; }
 .pwa-toast .btn { border-color: var(--ink); color: var(--ink); }
 .pwa-toast .x { background: none; border: 0; color: var(--ink-faint); font-size: 18px; line-height: 1; padding: 2px 4px; }
 .offline-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--ink-soft); font-family: var(--font-ko); }
