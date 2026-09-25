@@ -106,9 +106,10 @@ window.LP_PARSER = (function () {
       const merged = [];
       for (let i = 0; i < blocks.length; i++) {
         let b = blocks[i];
-        // only wrapped prose is glued: a long last line with lowercase letters that does not end a sentence
+        // only wrapped prose is glued: a long last line with lowercase letters that does not end a sentence.
+        // A line ending in a colon opens dialogue, a song or a letter in the next block: keep that break.
         const lastLine = () => b.trim().split('\n').pop().trim();
-        while (!END.test(lastLine()) && lastLine().length >= 45 && /[a-z]/.test(lastLine()) && !FRONT.test(lastLine()) && i + 1 < blocks.length && !picture(blocks[i + 1])) { b = b + '\n' + blocks[++i]; }
+        while (!END.test(lastLine()) && !/:$/.test(lastLine()) && lastLine().length >= 45 && /[a-z]/.test(lastLine()) && !FRONT.test(lastLine()) && i + 1 < blocks.length && !picture(blocks[i + 1])) { b = b + '\n' + blocks[++i]; }
         merged.push(b);
       }
       paras = [];
@@ -205,5 +206,5 @@ window.LP_PARSER = (function () {
     return out;
   }
 
-  return { parse, sentences, headingNumber, picture, VERSION: 6 };
+  return { parse, sentences, headingNumber, picture, VERSION: 7 };
 })();

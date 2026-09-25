@@ -38,6 +38,9 @@ ok(r3.chapters.length === 2 && r3.chapters[1].paragraphs.join(' ').includes('mor
 const wrapped = 'Chapter 1\n\n' + 'The first line of a paragraph that is wrapped by hand at about seventy chars.\n'.repeat(3) + 'Short end.\n' + 'Another paragraph line that is also quite long and wraps around the margin.\n'.repeat(3) + 'Done.\n\nA dangling opener that was cut off by the PDF export without a full stop\n\nfinishes here.\n';
 const r4 = P.parse(wrapped + '\nChapter 2\n\nx.');
 ok(r4.chapters[0].paragraphs.length === 3, 'ragged split: ' + r4.chapters[0].paragraphs.length);
+// a paragraph ending in a colon introduces the next one (dialogue, a song): the two are not glued
+const r5 = P.parse('Chapter 1\n\nWhen I finally managed to speak, I said to him quietly:\n\n"But what are you doing here?"\n\nChapter 2\n\nx.');
+ok(r5.chapters[0].paragraphs.length === 2, 'colon paragraph kept apart: ' + r5.chapters[0].paragraphs.length);
 // Gutenberg-style file: licence header, a contents list, "Chapter I" + title line, licence footer
 const gut = ['The Project Gutenberg eBook of Example', '', '*** START OF THE PROJECT GUTENBERG EBOOK EXAMPLE ***', '', 'Contents', '',
   ' Chapter I. The Cyclone', ' Chapter II. The Council', ' Chapter III. The Road', '', 'Introduction', '', 'Folklore and legends have followed childhood through the ages. ' + 'Every healthy youngster loves stories that are fantastic and marvellous. '.repeat(6), '']

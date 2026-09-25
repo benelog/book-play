@@ -15,6 +15,15 @@
   원서에서 그림을 가리키는 자리(보아뱀, 양, 상자, 소행성 …)와 인물이 처음 나오는 자리에 넣었습니다.
 - 원문에 있는 오류는 그대로 옮겼습니다(6장 "forty-four"/"forty-three", 13장 사업가의 계산).
 
+## 따로 정한 번역
+
+- 1장 "Histoires Vécues" → "Stories from Real Life", "forêt vierge" → "untouched forest".
+- 16장 "les rois nègres" → "the African kings"(순화).
+- 23·24·26장 "fontaine" → "spring", 24·26장 "écorce" → "shell".
+- 25장 "bien autre chose qu'un aliment" → "something far more than a drink"(조금 자유롭게).
+- 25장 "Il faut chercher avec le cœur" → "You have to search with the heart"(원문의 chercher를 살림).
+- Woods 영역본(1943)과는 기계적으로 대조하지 못했습니다(비교용 사본 없음). 유명한 대목(1·2·21·25·26장)은 사람이 직접 대조해 보세요.
+
 ## 용어집
 
 | 프랑스어 | 영어 |
