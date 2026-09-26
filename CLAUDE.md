@@ -41,6 +41,14 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
   그림 판끼리 z 차이가 크면 가까운 판이 눈 뒤로 넘어가 화면을 가립니다. `stations`의 z 폭을 좁게 둡니다.
 - **본문의 큰따옴표 인용을 늘리거나 줄이면 `film/cast.js`의 화자 목록도 고쳐야 합니다.** `node tools/test.js`가 장별 개수를 맞춰 보고, `node tools/film-quotes.js <장> <장>`가 인용과 화자를 나란히 보여 줍니다.
 - 본문 속 그림이나 장 삽화의 구도를 바꾸면 `film/shots.js`의 인물 위치(0~1 비율)를 다시 잽니다.
+- **대사는 녹음 음성입니다(2026-09-26부터).** OpenAI `gpt-4o-mini-tts`로 만든 `film/audio/<key>.mp3`를 `<audio>`로 재생하고(`file://`에서도 됨), 녹음이 없거나 재생에 실패한 줄만 브라우저 음성으로 읽습니다.
+  파일 이름 `<key>`는 `script.js`의 `audioKey(화자, 읽을 문장, cast.js의 tts)` 해시라서 **본문·화자·`tts`를 고치면 그 줄만 이름이 바뀌어 녹음이 빠집니다.** 고친 뒤에는 녹음 도구를 다시 돌리세요(없는 줄만 녹음하고 `audio.js` 목록을 다시 씀, `--prune`은 안 쓰는 파일 삭제, `--dry-run`은 남은 줄 수만). `node tools/test.js`가 녹음 비율을 알려 줍니다.
+  ```sh
+  source .envrc && OPENAI_PAT="$OPENAI_PAT" python3 -u tools/film-voices.py [--chapter N] [--prune]
+  ```
+  키는 저장소 루트의 `.envrc`(`OPENAI_PAT`)에 있고 `.git/info/exclude`로 git에서 뺐습니다. 커밋하지 마세요. ffmpeg(rubberband 필터, 어린 왕자 목소리를 3반음 올림)가 필요합니다.
+  영화 전체(1,435줄, 약 95분)가 1~2달러입니다. 이 조직의 gpt-4o-mini 계열은 **하루 요청 1만 회를 다른 사용처와 함께 씁니다.** 한도가 찼을 때는 `LP_TTS_RPM=6.5`(분당 6.5회)로 천천히 돌립니다.
+  인물별 목소리(여우 cedar, 화자 ash, 어린 왕자 coral +3반음은 사용자가 고름)는 `cast.js`의 `tts: { voice, shift, how }`입니다. 로컬 Kokoro-82M도 시험했지만 아이 목소리가 없어 쓰지 않았습니다.
 - 애니메이션은 이 컴퓨터의 Chrome 확장 탭에서 `requestAnimationFrame`이 돌지 않아 확인할 수 없습니다. headless Chrome을 DevTools 프로토콜로 조작해 스크린숏으로 확인하세요.
   Codex 샌드박스에서는 Chrome을 띄울 수 없어 Codex가 직접 렌더링을 볼 수 없습니다.
 

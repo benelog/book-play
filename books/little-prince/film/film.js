@@ -14,8 +14,6 @@
 
   const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
     'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII'];
-  const WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen',
-    'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty', 'Twenty-one', 'Twenty-two', 'Twenty-three', 'Twenty-four', 'Twenty-five', 'Twenty-six', 'Twenty-seven'];
   const pad = (n) => String(n).padStart(2, '0');
   const src = (id) => id === 'cover' ? '../images/cover.jpg' : /^chapter-/.test(id) ? `../images/${id}.jpg` : `../images/pictures/${id}.jpg`;
   const store = {
@@ -25,33 +23,9 @@
 
   // ---------------------------------------------------------------- timeline
   const parsed = P.parse(window.LP_BOOK.text);
-  const built = S.build(parsed.chapters, CAST.speakers, P.picture);
-  if (built.errors.length) console.warn('[film] cast.js does not match the text:', built.errors);
-  const steps = [];
-  const chapterStart = {};
-  const narr = (text, extra) => S.chunks(text).map(t => Object.assign({ kind: 'line', who: 'narrator', text: t, say: S.spoken(t) }, extra));
-
-  // opening: title page and dedication (the front matter of the text file)
-  const front = parsed.front || [];
-  steps.push({ kind: 'title', img: 'cover', ch: 0, title: front[0] || 'The Little Prince', by: front[1] || '', note: front[2] || '',
-    say: `${front[0] || 'The Little Prince'}. By ${front[1] || 'Antoine de Saint-Exupéry'}.`, para: 't' });
-  front.slice(3).forEach((p, i) => narr(p, { img: 'cover', ch: 0, para: 'f' + i }).forEach(s => steps.push(s)));
-
-  built.chapters.forEach(c => {
-    const sc = SCENES.find(x => x.num === c.num) || {};
-    let img = 'chapter-' + pad(c.num);
-    chapterStart[c.num] = steps.length;
-    steps.push({ kind: 'card', img, ch: c.num, title: sc.title || '', ko: sc.ko || '', say: `Chapter ${WORDS[c.num]}.`, para: 'c' + c.num });
-    c.beats.forEach(b => {
-      if (b.picture) {
-        img = b.picture; steps.push({ kind: 'picture', img, ch: c.num, alt: b.alt, para: 'p' + b.picture }); return;
-      }
-      b.lines.forEach(l => l.parts.forEach(p => {
-        steps.push({ kind: 'line', img, ch: c.num, who: l.who, text: p.text, say: p.say, para: c.num + '.' + b.para });
-      }));
-    });
-  });
-  steps.push({ kind: 'end', img: '27-1', ch: 27, para: 'end' });
+  const TL = S.timeline(parsed, CAST.speakers, P.picture, SCENES);
+  if (TL.errors.length) console.warn('[film] cast.js does not match the text:', TL.errors);
+  const steps = TL.steps, chapterStart = TL.chapterStart;
 
   // every picture gets a station along a slow spiral through space, in the order it first appears
   const stations = {};
@@ -244,7 +218,7 @@
       casting[id] = list.length ? list[(SLOT[id] || 0) % list.length] : null;
     });
     renderCast();
-    $('voice-note').textContent = voices.length
+    $('voice-note').textContent = RECORDED.size ? recordedNote() : voices.length
       ? `${voices.length} English voice${voices.length > 1 ? 's' : ''} found (${female.length} female, ${male.length} male). Characters differ by voice and pitch.`
       : 'No speech voices in this browser: the film runs with subtitles only.';
   }
@@ -252,7 +226,23 @@
   // ---------------------------------------------------------------- playback
   let cur = 0, playing = false, token = 0, timer = null, watchdog = null;
   const speed = () => +$('speed').value;
-  const voiceOn = () => $('voice-on').checked && canSpeak && voices.length > 0;
+  // Recorded voices (audio/<key>.mp3, listed in audio.js by tools/film-voices.py) are played when present; any other
+  // line falls back to the browser's speech. <audio> is not fetch(), so this also works from file://.
+  const RECORDED = new Set(String(window.LP_FILM_AUDIO || '').split(/\s+/).filter(Boolean));
+  const clipOf = (step) => {
+    if (!step || !step.say || !RECORDED.size) return null;
+    const who = step.who || 'narrator', c = CAST.characters[who] || CAST.characters.narrator;
+    const key = S.audioKey(who, step.say, c.tts);
+    return RECORDED.has(key) ? `audio/${key}.mp3` : null;
+  };
+  let clip = null, nextClip = null;
+  function preloadAfter(i) {
+    for (let k = i + 1; k < Math.min(steps.length, i + 4); k++) {
+      const url = clipOf(steps[k]);
+      if (url) { if (!nextClip || nextClip.dataset.url !== url) { nextClip = new Audio(url); nextClip.preload = 'auto'; nextClip.dataset.url = url; } return; }
+    }
+  }
+  const voiceOn = () => $('voice-on').checked && (RECORDED.size > 0 || (canSpeak && voices.length > 0));
   const words = (t) => (t || '').split(/\s+/).filter(Boolean).length;
   function duration(step) {
     if (step.kind === 'picture') return 2600;
@@ -271,10 +261,37 @@
   function stopAudio() {
     token++;
     clearTimeout(timer); clearTimeout(watchdog);
+    if (clip) { clip.pause(); clip.onended = clip.onerror = null; clip = null; }
     if (canSpeak) synth.cancel();
   }
   // Speak one step. Chrome cuts off utterances longer than about fifteen seconds, so a long line goes sentence by sentence.
   function speak(step, done) {
+    const url = clipOf(step);
+    if (url) { playClip(step, url, done); return; }
+    speakSynth(step, done);
+  }
+  function playClip(step, url, done) {
+    const my = token;
+    const c = CAST.characters[step.who || 'narrator'] || CAST.characters.narrator;
+    const a = nextClip && nextClip.dataset.url === url ? nextClip : new Audio(url);
+    if (a === nextClip) nextClip = null;
+    clip = a;
+    let finished = false;
+    const finish = () => { if (finished || my !== token) return; finished = true; clearTimeout(watchdog); clip = null; done(); };
+    // a clip that cannot be played (missing file, no audio support) is read by the browser's speech instead
+    const fallback = () => { if (finished || my !== token) return; finished = true; clearTimeout(watchdog); clip = null;
+      if (canSpeak && voices.length) speakSynth(step, done); else done(); };
+    watchdog = setTimeout(finish, duration(step) * 3 + 8000);
+    a.playbackRate = speed();
+    a.volume = c.volume || 1;
+    a.onended = finish;
+    a.onerror = fallback;
+    try { a.currentTime = 0; } catch (e) { /* not loaded yet */ }
+    const p = a.play();
+    if (p && p.catch) p.catch(fallback);
+    preloadAfter(cur);
+  }
+  function speakSynth(step, done) {
     const my = token;
     const c = CAST.characters[step.who || 'narrator'] || CAST.characters.narrator;
     const v = casting[step.who || 'narrator'];
@@ -438,9 +455,10 @@
       const pt = (SHOTS[img] && (SHOTS[img][key] || SHOTS[img].focus)) || [0.5, 0.5];
       const px = ((pt[0] * K - 0.5) / (K - 1) * 100).toFixed(1), py = ((pt[1] * K * 0.75 - 0.5) / (K * 0.75 - 1) * 100).toFixed(1);
       const v = casting[id];
+      const rec = RECORDED.size && c.tts ? c.tts.voice + (c.tts.shift ? ` +${c.tts.shift}` : '') : '';
       const face = `<span class="face" style="background-image:url(${src(img)});background-size:${K * 100}% auto;background-position:${px}% ${py}%"></span>`;
       return `<li style="--c:${c.color}">${face}` +
-        `<span><span class="nm">${c.name}</span><br><span class="vc">${$('ko-on').checked ? c.ko + ' · ' : ''}${v ? v.name.replace(/^(Microsoft|Google) /, '') : 'no voice'}${c.pitch !== 1 ? ` · pitch ${c.pitch}` : ''}</span></span></li>`;
+        `<span><span class="nm">${c.name}</span><br><span class="vc">${$('ko-on').checked ? c.ko + ' · ' : ''}${rec ? 'voice: ' + rec : v ? v.name.replace(/^(Microsoft|Google) /, '') : 'no voice'}${!rec && c.pitch !== 1 ? ` · pitch ${c.pitch}` : ''}</span></span></li>`;
     }).join('');
   }
 
@@ -481,6 +499,13 @@
     setPlaying(true);
   }
   $('start').onclick = () => start(0);
+  $('speed').addEventListener('input', () => { if (clip) clip.playbackRate = speed(); });
+  function recordedNote() {
+    const spoken = steps.filter(s => s.say).length, have = steps.filter(s => clipOf(s)).length;
+    return have >= spoken ? 'Recorded voices: each character has their own voice.'
+      : `Recorded voices for ${Math.round(have / spoken * 100)}% of the lines; the rest is read by the browser's voice.`;
+  }
+
   $('resume').onclick = () => { let i = savedIndex(); while (i > 0 && steps[i - 1].para === steps[i].para) i--; start(i); };
 
   buildMenu();
@@ -488,7 +513,7 @@
   if (canSpeak) {
     loadVoices();
     if (synth.addEventListener) synth.addEventListener('voiceschanged', loadVoices); else synth.onvoiceschanged = loadVoices;
-  } else $('voice-note').textContent = 'This browser cannot speak: the film runs with subtitles only.';
+  } else $('voice-note').textContent = RECORDED.size ? recordedNote() : 'This browser cannot speak: the film runs with subtitles only.';
   show(savedIndex(), false);
   // start far out in space and glide in behind the splash
   cam.s = fitScale() * 0.2; cam.x = goal.x - 1800; cam.y = goal.y + 400;

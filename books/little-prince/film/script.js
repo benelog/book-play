@@ -84,5 +84,45 @@ window.LP_FILM_SCRIPT = (function () {
     return { chapters: out, errors };
   }
 
-  return { spans, quoteCount, spoken, chunks, build };
+  /* The whole film as a list of steps: title and dedication, then for each chapter a card, its pictures and every
+     subtitle-sized line. A step is { kind: 'title'|'card'|'picture'|'line'|'end', img, ch, para, who?, text?, say? }. */
+  const WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen',
+    'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty', 'Twenty-one', 'Twenty-two', 'Twenty-three', 'Twenty-four', 'Twenty-five', 'Twenty-six', 'Twenty-seven'];
+  function timeline(parsed, speakers, picture, scenes) {
+    const built = build(parsed.chapters, speakers, picture);
+    const steps = [], chapterStart = {};
+    const pad = (n) => String(n).padStart(2, '0');
+    const narr = (text, extra) => chunks(text).map(t => Object.assign({ kind: 'line', who: 'narrator', text: t, say: spoken(t) }, extra));
+    // opening: title page and dedication (the front matter of the text file)
+    const front = parsed.front || [];
+    steps.push({ kind: 'title', img: 'cover', ch: 0, who: 'narrator', title: front[0] || 'The Little Prince', by: front[1] || '', note: front[2] || '',
+      say: `${front[0] || 'The Little Prince'}. By ${front[1] || 'Antoine de Saint-Exupéry'}.`, para: 't' });
+    front.slice(3).forEach((p, i) => narr(p, { img: 'cover', ch: 0, para: 'f' + i }).forEach(s => steps.push(s)));
+    built.chapters.forEach(c => {
+      const sc = (scenes || []).find(x => x.num === c.num) || {};
+      let img = 'chapter-' + pad(c.num);
+      chapterStart[c.num] = steps.length;
+      steps.push({ kind: 'card', img, ch: c.num, who: 'narrator', title: sc.title || '', ko: sc.ko || '', say: `Chapter ${WORDS[c.num]}.`, para: 'c' + c.num });
+      c.beats.forEach(b => {
+        if (b.picture) { img = b.picture; steps.push({ kind: 'picture', img, ch: c.num, alt: b.alt, para: 'p' + b.picture }); return; }
+        b.lines.forEach(l => l.parts.forEach(p => {
+          steps.push({ kind: 'line', img, ch: c.num, who: l.who, text: p.text, say: p.say, para: c.num + '.' + b.para });
+        }));
+      });
+    });
+    steps.push({ kind: 'end', img: '27-1', ch: 27, para: 'end' });
+    return { steps, chapterStart, errors: built.errors };
+  }
+
+  /* Recorded voices (film/audio/, made by tools/film-voices.py): each spoken step has a file named by a hash of what is
+     said and how, so a changed line or a changed voice gets a new file. FNV-1a over the UTF-8 bytes, 8 hex digits. */
+  function audioKey(who, say, tts) {
+    const t = tts || {};
+    const bytes = new TextEncoder().encode(['v1', who, say, t.voice || '', t.shift || 0, t.how || ''].join('\n'));
+    let h = 0x811c9dc5;
+    for (const b of bytes) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8, '0');
+  }
+
+  return { spans, quoteCount, spoken, chunks, build, timeline, audioKey };
 })();

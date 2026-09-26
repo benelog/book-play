@@ -76,7 +76,13 @@ window.LP_PWA = (function () {
     } catch (e) { /* no text */ }
     // a book with a film (books/<id>/film/) keeps it too; the film page's own URL is its folder
     if (await put(`${dir}/film/film.js`)) {
-      for (const f of ['', 'index.html', 'film.css', 'script.js', 'cast.js', 'shots.js']) await put(`${dir}/film/${f}`);
+      for (const f of ['', 'index.html', 'film.css', 'script.js', 'cast.js', 'shots.js', 'audio.js']) await put(`${dir}/film/${f}`);
+      // the recorded voices (film/audio.js lists audio/<key>.mp3)
+      try {
+        const r = await cache.match(`${dir}/film/audio.js`);
+        const keys = r ? ((await r.text()).match(/LP_FILM_AUDIO = "([^"]*)"/) || [, ''])[1].split(' ').filter(Boolean) : [];
+        for (const k of keys) await put(`${dir}/film/audio/${k}.mp3`);
+      } catch (e) { /* no recorded voices */ }
     }
     for (const c of ['cover.jpg', 'cover.png', 'cover.webp']) if (await put(`${dir}/images/${c}`)) break;
     tick();

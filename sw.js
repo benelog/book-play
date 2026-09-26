@@ -7,7 +7,7 @@
      404.html redirect dance on GitHub Pages once the worker is installed.
    - Cross-origin requests (the dictionary APIs) are left alone; js/dict.js keeps its own cache in localStorage.
    Bump VERSION whenever a shell file changes so the new shell is precached and the "new version" toast appears. */
-const VERSION = 'v13';
+const VERSION = 'v14';
 const SHELL = `bookplay-shell-${VERSION}`;
 const BOOKS = 'bookplay-books';
 const ROOT = new URL('./', self.location).pathname;          // '/' locally, '/book-play/' on GitHub Pages
@@ -30,8 +30,8 @@ async function networkFirst(req, cacheName, fallback) {
   const cache = await caches.open(cacheName);
   try {
     const res = await fetch(req);
-    if (res.ok) cache.put(req, res.clone());
-    else if (fallback) { const alt = await cache.match(fallback); if (alt) return alt; }
+    if (res.status === 200) cache.put(req, res.clone());   // not 206: <audio> asks for byte ranges
+    else if (!res.ok && fallback) { const alt = await cache.match(fallback); if (alt) return alt; }
     return res;
   } catch (err) {
     // a page saved with a book (books/<id>/film/) sits in the book cache, not the shell cache
@@ -43,7 +43,7 @@ async function cacheFirst(req, cacheName) {
   const hit = await cache.match(req);
   if (hit) return hit;
   const res = await fetch(req);
-  if (res.ok) cache.put(req, res.clone());
+  if (res.status === 200) cache.put(req, res.clone());
   return res;
 }
 
@@ -60,7 +60,8 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (path.startsWith(ROOT + 'books/')) {
-    e.respondWith(/\.(jpe?g|png|webp|gif|svg)$/i.test(path) ? cacheFirst(req, BOOKS) : networkFirst(req, BOOKS));
+    // images and the film's recorded voices (named by a hash of the line, so never changed in place) come from the cache first
+    e.respondWith(/\.(jpe?g|png|webp|gif|svg|mp3)$/i.test(path) ? cacheFirst(req, BOOKS) : networkFirst(req, BOOKS));
     return;
   }
   e.respondWith(networkFirst(req, SHELL));

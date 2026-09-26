@@ -160,6 +160,21 @@ ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldes
   built.chapters.forEach(c => c.beats.forEach(b => {
     if (b.picture) ok(fs.existsSync(path.join(booksDir, 'little-prince', 'images', 'pictures', b.picture + '.jpg')), `picture ${b.picture}: images/pictures/${b.picture}.jpg missing`);
   }));
+  // recorded voices: every file audio.js lists exists; how many spoken steps have one is only reported
+  // (a line without a recording falls back to the browser's speech — see tools/film-voices.py)
+  const audioJs = path.join(film, 'audio.js');
+  if (fs.existsSync(audioJs)) {
+    delete window.LP_FILM_AUDIO; require(audioJs);
+    const listed = new Set((window.LP_FILM_AUDIO || '').split(' ').filter(Boolean));
+    listed.forEach(k => ok(fs.existsSync(path.join(film, 'audio', k + '.mp3')), `film: audio.js lists ${k} but audio/${k}.mp3 is missing`));
+    delete window.LP_SCENES; require(path.join(booksDir, 'little-prince', 'scenes.js'));
+    const keys = new Set(F.timeline(parsed, CAST.speakers, P.picture, window.LP_SCENES || []).steps.filter(s => s.say).map(s => {
+      const who = s.who || 'narrator';
+      return F.audioKey(who, s.say, (CAST.characters[who] || CAST.characters.narrator).tts);
+    }));
+    const have = [...keys].filter(k => listed.has(k)).length, stale = [...listed].filter(k => !keys.has(k)).length;
+    console.log(`film voices: ${have}/${keys.size} spoken steps recorded` + (stale ? `, ${stale} unused (tools/film-voices.py --prune)` : ''));
+  }
 }
 
 console.log(fails ? `${fails} failure(s)` : 'all tests passed');
