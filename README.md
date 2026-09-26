@@ -40,6 +40,7 @@
 - **어린 왕자 영화(Film)** `books/little-prince/film/index.html` — 어린 왕자 제목 페이지의 "▶ Watch the whole book as a film". 헌사부터 27장 끝까지 번역문 전체를 자막으로 보여 주고 미리 녹음한 음성으로 읽습니다.
   화자(조종사)의 서술과 등장인물의 대사를 나눠, 인물마다 한 가지 목소리와 자막 색을 씁니다. 녹음은 OpenAI `gpt-4o-mini-tts`로 만든 `film/audio/<key>.mp3`이고(`tools/film-voices.py`), 녹음이 없는 줄은 브라우저 음성(음색·높낮이로 인물 구분)으로 읽습니다. 장 삽화와 본문 속 그림(`images/pictures/`)이 별이 뜬 공간에 판처럼 떠 있고, 카메라가 판 사이를 날아가며 말하는 인물 쪽으로 다가갑니다.
   CSS 3D로 만들었습니다. `file://`에서는 WebGL이 로컬 이미지를 텍스처로 쓸 수 없기 때문입니다.
+  자막은 지금 읽는 단어를 밝혀 줍니다(`film/timing.js`의 단어 시각, 브라우저 음성은 단어 경계). 층을 나눈 그림(98장)은 하늘이 땅·인물보다 덜 움직여 깊이가 생기고, 인물이 눈을 깜빡이며 말하는 인물의 입이 녹음 음량에 맞춰 열립니다(`film/motion.js`). `?motion=0`이면 전처럼 정지 그림, 동작 줄이기 설정이면 단어 강조만 남습니다.
   녹음도 브라우저 음성도 없으면 자막만으로 진행합니다. 스페이스 재생/정지, ← → 문장, [ ] 장, f 전체 화면. 이어 보기 위치는 `lp.v1.little-prince.film`에 저장합니다.
 
 icons/                앱 아이콘 (icon.svg 원본, PNG는 ImageMagick으로 변환)
@@ -48,7 +49,9 @@ books/_template/      scenes.js 템플릿
 books/little-prince/  어린 왕자: scenes.js, art.js(대체 SVG 삽화), text/, images/(pictures/ 본문 속 그림), film/(낭독 영화:
                       index.html, film.js 재생, film.css, script.js 본문→대본,
                       cast.js 인용마다 화자·인물별 목소리, shots.js 그림 속 인물 위치,
-                      audio/ 녹음 음성 MP3, audio.js 녹음 목록)
+                      audio/ 녹음 음성 MP3, audio.js 녹음 목록·길이, timing.js 입 모양·단어 시각,
+                      motion.js 층 시차·깜빡임·입·자막 단어 강조, layers.js 층·얼굴 조각 위치),
+                      images/layers/<그림>/ (far.jpg 먼 층, mid.webp 땅·인물, <인물>-face.webp 눈 감음|입 반|입 열림)
 books/wizard-of-oz/   오즈의 마법사: scenes.js, text/, images/ (원문·삽화 내려받기 안내는 각 README)
 books/alice-in-wonderland/, books/peter-rabbit/, books/grimms-fairy-tales/, books/peter-pan/, books/red-raincoat/, books/efficiency-expert/, books/sherlock-holmes/  같은 구조
 _redirects            정적 호스팅용 경로 재작성 규칙
@@ -57,5 +60,8 @@ tools/embed-text.py   text/*.txt → text/book.js 변환 (start.sh가 자동 실
 tools/test.js         node tools/test.js — 파서·판정·모든 책의 장면 데이터·어린 왕자 영화 대본 검사
 tools/film-quotes.js  node tools/film-quotes.js [from] [to] — 어린 왕자 인용문과 cast.js의 화자를 나란히 출력
 tools/film-voices.py  어린 왕자 영화 대사 녹음 (OpenAI TTS, 녹음이 없는 줄만; audio.js를 다시 씀)
+tools/film-timing.py  녹음마다 입 모양 곡선(50ms)과 단어 시각(faster-whisper) → film/timing.js (없는 것만)
+tools/film-layers.py  그림을 먼 층·땅 층으로 나누고 얼굴 조각을 만듦 (Codex 편집 + rembg) → images/layers/, film/layers.js
+tools/film-motion-check.py  headless Chrome으로 층·얼굴을 원본과 대조한 contact sheet
 tools/gallery.html    삽화 미리보기 (?book=<id>; images/ 파일 우선, 없으면 art.js)
 ```

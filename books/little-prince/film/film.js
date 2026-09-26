@@ -3,10 +3,12 @@
    and every sentence of narration and dialogue. Each illustration is a painted board floating in a star field; the
    camera flies from board to board, and while a character speaks it moves toward that character's head (shots.js).
    Lines are spoken with the Web Speech API, one voice per character; without speech the film runs on timings.
-   Plain CSS 3D (no WebGL) so the page also works when opened from file://. */
+   Plain CSS 3D (no WebGL) so the page also works when opened from file://.
+   motion.js adds depth layers, blinking, speaking mouths and the spoken word lit in the subtitle (see its header). */
 (function () {
   const P = window.LP_PARSER, S = window.LP_FILM_SCRIPT, CAST = window.LP_FILM_CAST, SHOTS = window.LP_FILM_SHOTS || {};
   const SCENES = window.LP_SCENES || [];
+  const M = window.LP_FILM_MOTION || null;   // motion.js: layers, faces, subtitle words
   const KEY = 'lp.v1.little-prince.film';
   const $ = (id) => document.getElementById(id);
   const stage = $('stage'), world = $('world');
@@ -80,6 +82,7 @@
     el.style.transform = flat(st) + (reduced ? '' : ' rotateX(-70deg) translateY(300px)');
     el.style.opacity = '0';
     el.style.visibility = 'hidden';
+    if (M) M.build(el, img, src(img));
     world.appendChild(el);
     panels[img] = el;
     addMotes(el, img);
@@ -122,6 +125,7 @@
       if (keep.includes(img)) return;
       const el = panels[img];
       delete panels[img];
+      if (M) M.drop(img);
       el.style.opacity = '0';
       setTimeout(() => el.remove(), 1400);
     });
@@ -159,17 +163,20 @@
     const W = stage.clientWidth, H = stage.clientHeight;
     return Math.min(Math.max(W / 1200, H / 900), fitScale() * 1.9);
   }
-  function aim(img, point, s) {
+  function aim(img, point, s, off) {
+    off = off || [0, 0];
     const st = stations[img], W = stage.clientWidth, H = stage.clientHeight;
     const hw = W / 2 / s, hh = H * 0.45 / s;
     const clamp = (v, lim) => lim <= 0 ? 0 : Math.max(-lim, Math.min(lim, v));
-    goal.x = st.x + clamp((point[0] - 0.5) * 1200, 600 - hw);
-    goal.y = st.y + clamp((point[1] - 0.5) * 900, 450 - hh);
+    goal.x = st.x + clamp((point[0] - 0.5) * 1200 + off[0], 600 - hw);
+    goal.y = st.y + clamp((point[1] - 0.5) * 900 + off[1], 450 - hh);
     goal.z = st.z;
     goal.s = s;
   }
-  let last = performance.now(), t0 = last;
+  let last = performance.now(), t0 = last, lastCover = 1, still = false;
   function frame(now) {
+    // still(): the camera sits exactly on its goal, without sway (screenshots, tools/film-motion-check.py)
+    if (still) { Object.assign(cam, goal, { yaw: 0, pitch: 0 }); travelUntil = 0; }
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const t = (now - t0) / 1000;
     const traveling = now < travelUntil;
@@ -182,7 +189,7 @@
       sGoal = goal.s * (f < 0.55 ? 0.28 : 0.28 + (f - 0.55) / 0.45 * 0.72);
     }
     cam.s += (sGoal - cam.s) * (1 - Math.exp(-dt / 0.7));
-    const sway = reduced ? 0 : 1;
+    const sway = reduced || still ? 0 : 1;
     const yawGoal = sway * (Math.sin(t * 0.07) * 3.2 + (traveling ? Math.sign(goal.x - cam.x) * 7 : 0));
     const pitchGoal = sway * Math.sin(t * 0.09 + 1) * 1.6;
     cam.yaw += (yawGoal - cam.yaw) * (1 - Math.exp(-dt / 1.2));
@@ -191,6 +198,7 @@
     world.style.transform = `translateZ(${(1000 - 1000 / cam.s).toFixed(1)}px) rotateX(${cam.pitch.toFixed(3)}deg) rotateY(${cam.yaw.toFixed(3)}deg) ` +
       `translate3d(${(-cam.x - dx).toFixed(1)}px, ${(-cam.y - dy).toFixed(1)}px, ${(-cam.z).toFixed(1)}px)`;
     placeSky(cam);
+    if (M && shownImg) M.frame(now, { x: cam.x + dx, y: cam.y + dy }, stations[shownImg], shownImg, cam.s >= lastCover * 0.97);
     requestAnimationFrame(frame);
   }
 
@@ -228,11 +236,15 @@
   const speed = () => +$('speed').value;
   // Recorded voices (audio/<key>.mp3, listed in audio.js by tools/film-voices.py) are played when present; any other
   // line falls back to the browser's speech. <audio> is not fetch(), so this also works from file://.
-  const RECORDED = new Set(String(window.LP_FILM_AUDIO || '').split(/\s+/).filter(Boolean));
+  const AUDIO = window.LP_FILM_AUDIO || {};
+  const RECORDED = new Set(typeof AUDIO === 'string' ? AUDIO.split(/\s+/).filter(Boolean) : Object.keys(AUDIO));
+  const keyOf = (step) => {
+    const who = step.who || 'narrator', c = CAST.characters[who] || CAST.characters.narrator;
+    return S.audioKey(who, step.say, c.tts);
+  };
   const clipOf = (step) => {
     if (!step || !step.say || !RECORDED.size) return null;
-    const who = step.who || 'narrator', c = CAST.characters[who] || CAST.characters.narrator;
-    const key = S.audioKey(who, step.say, c.tts);
+    const key = keyOf(step);
     return RECORDED.has(key) ? `audio/${key}.mp3` : null;
   };
   let clip = null, nextClip = null;
@@ -261,6 +273,7 @@
   function stopAudio() {
     token++;
     clearTimeout(timer); clearTimeout(watchdog);
+    if (M) M.stop();
     if (clip) { clip.pause(); clip.onended = clip.onerror = null; clip = null; }
     if (canSpeak) synth.cancel();
   }
@@ -286,6 +299,8 @@
     a.volume = c.volume || 1;
     a.onended = finish;
     a.onerror = fallback;
+    // the mouths and the subtitle follow the voice's own clock (unaffected by the playback speed)
+    if (M) M.start(step, url.slice(6, -4), () => (clip === a ? a.currentTime * 1000 : null));
     try { a.currentTime = 0; } catch (e) { /* not loaded yet */ }
     const p = a.play();
     if (p && p.catch) p.catch(fallback);
@@ -300,7 +315,9 @@
       if (pieces.length && (pieces[pieces.length - 1].length < 60 || m.trim().length < 20)) pieces[pieces.length - 1] += m; else pieces.push(m);
     }
     let finished = false;
-    const finish = () => { if (finished || my !== token) return; finished = true; clearTimeout(watchdog); done(); };
+    const finish = () => { if (finished || my !== token) return; finished = true; clearTimeout(watchdog); if (M) M.stop(); done(); };
+    if (M) M.start(step, null, null);
+    const wordsIn = (t) => (t.match(M ? M.WORD : /\S+/g) || []).length;
     // some engines never fire onend: move on after a generous estimate
     watchdog = setTimeout(finish, duration(step) * 2.2 + 4000);
     const say = (k) => {
@@ -312,6 +329,9 @@
       u.rate = Math.min(2, (c.rate || 1) * speed() * 0.95);
       u.volume = c.volume || 1;
       u.onend = () => say(k + 1);
+      // word boundaries light the word in the subtitle and move the speaker's mouth
+      const before = pieces.slice(0, k).reduce((n, p) => n + wordsIn(p), 0);
+      u.onboundary = (e) => { if (M && my === token && (!e.name || e.name === 'word')) M.boundary(before + wordsIn(pieces[k].trim().slice(0, e.charIndex))); };
       u.onerror = (e) => { if (e.error === 'interrupted' || e.error === 'canceled') return; say(k + 1); };
       synth.speak(u);
     };
@@ -350,6 +370,7 @@
     // board and camera: the board we leave stays visible during the flight, then hides
     const order = Object.keys(stations);
     const at = order.indexOf(step.img);
+    if (M) M.cut(step.img);
     const prevImg = shownImg;
     prunePanels([order[at - 1], step.img, order[at + 1], prevImg].filter(Boolean));
     unfold(step.img);
@@ -374,7 +395,8 @@
       }
     } else if (step.kind === 'picture') scale = fit * 1.05;
     else scale = fit * 0.92;
-    aim(step.img, point, scale);
+    lastCover = cover;
+    aim(step.img, point, scale, M ? M.drift(step) : null);
     if (step.kind === 'card' || step.kind === 'title' || step.kind === 'end') showCard(step);
     else if (cardEl) showCard(null);
     renderSubtitle(step);
@@ -396,7 +418,7 @@
     box.querySelector('.who').textContent = step.who === 'narrator' ? 'Narrator' : c.name;
     box.querySelector('.who').style.visibility = step.who === 'narrator' ? 'hidden' : 'visible';
     const line = box.querySelector('.line');
-    line.textContent = step.text;
+    if (M) M.subtitle(line, step); else line.textContent = step.text;
     line.className = 'line ' + (step.who === 'narrator' ? 'narration' : 'speech');
     box.querySelector('.ko').textContent = $('ko-on').checked && step.who !== 'narrator' ? c.ko : '';
   }
@@ -518,5 +540,6 @@
   // start far out in space and glide in behind the splash
   cam.s = fitScale() * 0.2; cam.x = goal.x - 1800; cam.y = goal.y + 400;
   requestAnimationFrame(frame);
-  window.LP_FILM = { steps, show, stations, get cur() { return cur; }, get playing() { return playing; }, casting: () => casting };
+  window.LP_FILM = { steps, show, stations, get cur() { return cur; }, get playing() { return playing; }, casting: () => casting, motion: M,
+    still(on) { still = !!on; }, aim(img, point, s) { aim(img, point, s); }, fitScale, coverScale };
 })();

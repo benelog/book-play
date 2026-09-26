@@ -165,7 +165,8 @@ ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldes
   const audioJs = path.join(film, 'audio.js');
   if (fs.existsSync(audioJs)) {
     delete window.LP_FILM_AUDIO; require(audioJs);
-    const listed = new Set((window.LP_FILM_AUDIO || '').split(' ').filter(Boolean));
+    const A = window.LP_FILM_AUDIO || {};
+    const listed = new Set(typeof A === 'string' ? A.split(' ').filter(Boolean) : Object.keys(A));
     listed.forEach(k => ok(fs.existsSync(path.join(film, 'audio', k + '.mp3')), `film: audio.js lists ${k} but audio/${k}.mp3 is missing`));
     delete window.LP_SCENES; require(path.join(booksDir, 'little-prince', 'scenes.js'));
     const keys = new Set(F.timeline(parsed, CAST.speakers, P.picture, window.LP_SCENES || []).steps.filter(s => s.say).map(s => {
@@ -174,6 +175,44 @@ ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldes
     }));
     const have = [...keys].filter(k => listed.has(k)).length, stale = [...listed].filter(k => !keys.has(k)).length;
     console.log(`film voices: ${have}/${keys.size} spoken steps recorded` + (stale ? `, ${stale} unused (tools/film-voices.py --prune)` : ''));
+    // mouth shapes and word times (tools/film-timing.py): only for recordings that exist, one time pair per subtitle word
+    const timingJs = path.join(film, 'timing.js');
+    if (fs.existsSync(timingJs)) {
+      delete window.LP_FILM_TIMING; require(timingJs);
+      const T = window.LP_FILM_TIMING || {};
+      Object.keys(T).forEach(k => {
+        ok(listed.has(k), `film: timing.js has ${k}, which audio.js does not list`);
+        ok(/^[0-9]*$/.test(T[k].mouth) && Array.isArray(T[k].words), `film: timing.js ${k} is malformed`);
+      });
+      const WORD = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu;
+      F.timeline(parsed, CAST.speakers, P.picture, window.LP_SCENES || []).steps.filter(s => s.kind === 'line').forEach(s => {
+        const t = T[F.audioKey(s.who, s.say, (CAST.characters[s.who] || CAST.characters.narrator).tts)];
+        if (t && t.words.length) ok(t.words.length === (s.text.match(WORD) || []).length, `film: timing.js word count differs for "${s.text.slice(0, 40)}"`);
+      });
+      const timed = [...keys].filter(k => T[k]).length;
+      console.log(`film timing: ${timed}/${keys.size} recordings timed, ${Object.values(T).filter(v => !v.words.length).length} without word times`);
+    }
+  }
+  // motion layers (tools/film-layers.py): known pictures, files present, boxes inside the picture
+  const layersJs = path.join(film, 'layers.js');
+  if (fs.existsSync(layersJs)) {
+    require(layersJs);
+    const LY = window.LP_FILM_LAYERS || {}, dir = path.join(booksDir, 'little-prince', 'images', 'layers');
+    const inside = (b, lo, hi) => b.x >= lo && b.y >= lo && b.x + b.w <= hi && b.y + b.h <= hi && b.w > 0 && b.h > 0;
+    Object.keys(LY).forEach(id => {
+      ok(SHOTS[id], `film layers: ${id} is not a picture in shots.js`);
+      (LY[id].layers || []).forEach(l => {
+        ok(fs.existsSync(path.join(dir, id, l.src)), `film layers: ${id}/${l.src} missing`);
+        ok(typeof l.k === 'number' && inside(l, l.far ? -0.2 : -0.001, l.far ? 1.2 : 1.001), `film layers: ${id}/${l.src} box or k out of range`);
+      });
+      Object.keys(LY[id].faces || {}).forEach(who => {
+        const f = LY[id].faces[who];
+        ok(fs.existsSync(path.join(dir, id, f.src)), `film layers: ${id}/${f.src} missing`);
+        ok(inside(f, 0, 1.001), `film layers: ${id} ${who} face box outside the picture`);
+        const pt = SHOTS[id] && SHOTS[id][who];
+        ok(!pt || (Math.abs(pt[0] - (f.x + f.w / 2)) < 0.12 && Math.abs(pt[1] - (f.y + f.h / 2)) < 0.12), `film layers: ${id} ${who} face is far from the head in shots.js`);
+      });
+    });
   }
 }
 
