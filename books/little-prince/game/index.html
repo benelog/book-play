@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Prince · The Lamplighter's Planet · Book Play</title>
-<meta name="description" content="Walk round the lamplighter's tiny planet in 3D and talk to him in English: chapter XIV of The Little Prince as a play prototype.">
+<title>The Little Prince · Play it in 3D · Book Play</title>
+<meta name="description" content="Walk through The Little Prince in 3D, chapter by chapter, and speak your lines in English.">
 <meta name="theme-color" content="#0b1230">
 <link rel="icon" href="../../../icons/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="game.css">
 </head>
 <body>
-<canvas id="view" aria-label="The lamplighter's planet"></canvas>
+<canvas id="view" aria-label="The scene of the chapter"></canvas>
 <div id="bubbles" aria-live="polite"></div>
 
 <header id="bar">
-  <a id="back" href="#">← Book</a>
-  <div class="title"><b>The Little Prince</b> <span>XIV · The Lamplighter</span></div>
+  <a id="back" href="#">← Chapters</a>
+  <div class="title"><b>The Little Prince</b> <span id="where"></span></div>
   <label class="opt"><input type="checkbox" id="voice-on" checked> Voice</label>
   <label class="opt"><input type="checkbox" id="ko-on"> Korean help</label>
 </header>
@@ -23,10 +23,10 @@
 <div id="goal" hidden>
   <div class="en"></div>
   <div class="ko"></div>
-  <div id="sun-meter" hidden><div class="fill"></div><span></span></div>
 </div>
+<div id="meter" hidden><div class="fill"></div><span></span></div>
 
-<button id="talk" type="button" hidden>Talk <kbd>E</kbd></button>
+<button id="act" type="button" hidden>Talk <kbd>E</kbd></button>
 <div id="stick" aria-hidden="true"><div class="knob"></div></div>
 
 <section id="dialog" hidden>
@@ -52,23 +52,37 @@
 
 <div id="splash">
   <div class="card">
-    <p class="kicker">The Little Prince · Chapter XIV</p>
-    <h1>The Lamplighter's Planet</h1>
+    <p class="kicker"></p>
+    <h1></h1>
     <p class="summary"></p>
     <p class="summary-ko ko"></p>
-    <p class="keys">Walk: <kbd>↑</kbd><kbd>↓</kbd> or <kbd>W</kbd><kbd>S</kbd> · Turn: <kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> · Run: <kbd>Shift</kbd> · Talk: <kbd>E</kbd><br>
+    <p class="role"></p>
+    <p class="intro"></p>
+    <p class="intro-ko ko"></p>
+    <p class="keys">Walk: <kbd>↑</kbd><kbd>↓</kbd> or <kbd>W</kbd><kbd>S</kbd> · Turn: <kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> · Run: <kbd>Shift</kbd> · Talk / use: <kbd>E</kbd><br>
       <span class="touch-only">On a phone, drag the circle at the bottom left.</span></p>
     <button id="start" type="button" disabled>Loading…</button>
-    <p class="small">A 3D play prototype. The characters are new models on the skeleton and animations of Kenney's Mini Characters; rocks, grass and craters are from Kenney's Nature and Space Kits (all CC0). Built with three.js (MIT).</p>
+  </div>
+</div>
+
+<div id="menu" hidden>
+  <div class="card wide">
+    <p class="kicker">Antoine de Saint-Exupéry</p>
+    <h1>The Little Prince in 3D</h1>
+    <p>Walk into each chapter, meet the characters and speak your lines in English.</p>
+    <p class="ko">장마다 3D 장면 속을 걸어 다니며 인물을 만나고, 내 대사를 영어로 말해 보세요.</p>
+    <ol id="chapters"></ol>
+    <p class="small">Characters are new models on the skeleton and animations of Kenney's Mini Characters; ground cover and other pieces from Kenney's kits (all CC0). Built with three.js (MIT).</p>
   </div>
 </div>
 
 <div id="done" hidden>
   <div class="card">
-    <h2>Chapter XIV complete</h2>
-    <p>Of all the grown-ups you have met, the lamplighter is the one who cares for something other than himself. You would like to stay, but his little planet has no room for a second person.</p>
-    <p class="ko">지금까지 만난 어른 가운데 점등인만이 자기 아닌 것을 돌봅니다. 머물고 싶지만, 이 작은 별에는 한 사람이 더 있을 자리가 없습니다.</p>
+    <h2 id="done-title"></h2>
+    <p id="done-text"></p>
+    <p id="done-ko" class="ko"></p>
     <div class="buttons">
+      <a id="next-ch" class="btn" href="#" hidden>Next chapter ▸</a>
       <button id="stay" type="button">Keep walking</button>
       <a id="to-book" class="btn" href="#">Back to the book</a>
     </div>
@@ -79,7 +93,7 @@
 <script src="../../../js/matcher.js"></script>
 <script src="../scenes.js"></script>
 <script src="vendor/three-game.min.js"></script>
-<script src="models.js"></script>
+<script src="levels/index.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
