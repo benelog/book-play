@@ -402,6 +402,7 @@
           <button class="btn primary" id="btn-continue">${done || progress.current > 1 ? `Continue · Chapter ${roman(progress.current)}` : 'Start from the beginning'}</button>
           <button class="btn" id="btn-select">Choose a chapter</button>
           ${BOOK.film ? `<a class="btn film-link" href="${ROOT}${esc(BOOK.film)}">▶ Watch the whole book as a film <span class="ko-tag">낭독 영화</span></a>` : ''}
+          ${BOOK.game ? `<a class="btn film-link" href="${ROOT}${esc(BOOK.game)}">▶ Play it in 3D <span class="ko-tag">3D 플레이</span></a>` : ''}
           <button class="btn" id="btn-reset">Clear progress</button>
         </div>
         <div class="options">

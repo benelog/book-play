@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Little Prince · The Lamplighter's Planet · Book Play</title>
+<meta name="description" content="Walk round the lamplighter's tiny planet in 3D and talk to him in English: chapter XIV of The Little Prince as a play prototype.">
+<meta name="theme-color" content="#0b1230">
+<link rel="icon" href="../../../icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="game.css">
+</head>
+<body>
+<canvas id="view" aria-label="The lamplighter's planet"></canvas>
+<div id="bubbles" aria-live="polite"></div>
+
+<header id="bar">
+  <a id="back" href="#">← Book</a>
+  <div class="title"><b>The Little Prince</b> <span>XIV · The Lamplighter</span></div>
+  <label class="opt"><input type="checkbox" id="voice-on" checked> Voice</label>
+  <label class="opt"><input type="checkbox" id="ko-on"> Korean help</label>
+</header>
+
+<div id="goal" hidden>
+  <div class="en"></div>
+  <div class="ko"></div>
+  <div id="sun-meter" hidden><div class="fill"></div><span></span></div>
+</div>
+
+<button id="talk" type="button" hidden>Talk <kbd>E</kbd></button>
+<div id="stick" aria-hidden="true"><div class="knob"></div></div>
+
+<section id="dialog" hidden>
+  <p class="situation"></p>
+  <p class="situation-ko ko"></p>
+  <p class="line"><b class="who"></b> <span class="say"></span></p>
+  <p class="prompt"></p>
+  <p class="prompt-ko ko"></p>
+  <div class="choices"></div>
+  <form class="typing" autocomplete="off">
+    <input type="text" name="answer" placeholder="Type what you say, in English" spellcheck="false" aria-label="Your answer">
+    <button type="submit">Say</button>
+  </form>
+  <p class="feedback"></p>
+  <div class="foot">
+    <div class="mode" role="group" aria-label="Answer mode">
+      <button type="button" data-mode="type">Type</button><button type="button" data-mode="choose">Choose</button>
+    </div>
+    <button type="button" class="leave">Walk away</button>
+    <button type="button" class="next" hidden>Continue ▸</button>
+  </div>
+</section>
+
+<div id="splash">
+  <div class="card">
+    <p class="kicker">The Little Prince · Chapter XIV</p>
+    <h1>The Lamplighter's Planet</h1>
+    <p class="summary"></p>
+    <p class="summary-ko ko"></p>
+    <p class="keys">Walk: <kbd>↑</kbd><kbd>↓</kbd> or <kbd>W</kbd><kbd>S</kbd> · Turn: <kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> · Run: <kbd>Shift</kbd> · Talk: <kbd>E</kbd><br>
+      <span class="touch-only">On a phone, drag the circle at the bottom left.</span></p>
+    <button id="start" type="button" disabled>Loading…</button>
+    <p class="small">A 3D play prototype. The characters are new models on the skeleton and animations of Kenney's Mini Characters; rocks, grass and craters are from Kenney's Nature and Space Kits (all CC0). Built with three.js (MIT).</p>
+  </div>
+</div>
+
+<div id="done" hidden>
+  <div class="card">
+    <h2>Chapter XIV complete</h2>
+    <p>Of all the grown-ups you have met, the lamplighter is the one who cares for something other than himself. You would like to stay, but his little planet has no room for a second person.</p>
+    <p class="ko">지금까지 만난 어른 가운데 점등인만이 자기 아닌 것을 돌봅니다. 머물고 싶지만, 이 작은 별에는 한 사람이 더 있을 자리가 없습니다.</p>
+    <div class="buttons">
+      <button id="stay" type="button">Keep walking</button>
+      <a id="to-book" class="btn" href="#">Back to the book</a>
+    </div>
+  </div>
+</div>
+
+<script src="../../../js/storage.js"></script>
+<script src="../../../js/matcher.js"></script>
+<script src="../scenes.js"></script>
+<script src="vendor/three-game.min.js"></script>
+<script src="models.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
