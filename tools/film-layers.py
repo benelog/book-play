@@ -511,6 +511,10 @@ def build_depth(pid, im, out_dir, report):
     ring = (np.abs(far.astype(np.int16) - im.astype(np.int16)).max(axis=2) > 6) & above
     ring = cv2.GaussianBlur(cv2.dilate(ring.astype(np.uint8) * 255, np.ones((3, 3), np.uint8)), (0, 0), 1.5)
     mid_a = np.maximum(mid_a, np.where(above, ring, 0).astype(np.uint8))
+    return {'far': far, 'mid_a': mid_a, 'seg': seg, 'stand': stand, 'above': above}
+
+def write_depth(pid, im, out_dir, ctx):
+    far, mid_a = ctx['far'], ctx['mid_a']
     far = cv2.copyMakeBorder(far, MARGIN, MARGIN, MARGIN, MARGIN, cv2.BORDER_REFLECT)
     cv2.imwrite(os.path.join(out_dir, 'far.jpg'), far, [cv2.IMWRITE_JPEG_QUALITY, 82, cv2.IMWRITE_JPEG_PROGRESSIVE, 1])
     # mid is stored only over its bounding box
@@ -522,6 +526,112 @@ def build_depth(pid, im, out_dir, report):
     if os.path.exists(os.path.join(out_dir, 'mid.png')): os.remove(os.path.join(out_dir, 'mid.png'))
     return [{'src': 'far.jpg', 'k': 0.6, 'x': -MARGIN / W, 'y': -MARGIN / H, 'w': (W + 2 * MARGIN) / W, 'h': (H + 2 * MARGIN) / H, 'far': True},
             {'src': 'mid.webp', 'k': 1.0, 'x': 0, 'y': round(top / H, 5), 'w': 1, 'h': round((H - top) / H, 5)}]
+
+# ---------------------------------------------------------------------------------------------------- step 5 and 7
+def soft(mask, grow=2):
+    """A mask grown by `grow` px with a one-pixel soft edge, as 0-255."""
+    m = cv2.dilate(mask.astype(np.uint8) * 255, np.ones((2 * grow + 1, 2 * grow + 1), np.uint8))
+    return cv2.GaussianBlur(m, (0, 0), 0.7)
+
+def save_piece(path, im, alpha):
+    """Save the picture's pixels under `alpha` cropped to where alpha > 0; returns the box (x, y, w, h) in px."""
+    ys, xs = np.nonzero(alpha > 0)
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    piece = np.dstack([im, alpha])[y0:y1, x0:x1].copy()
+    piece[piece[..., 3] == 0] = 0
+    from PIL import Image
+    Image.fromarray(cv2.cvtColor(piece, cv2.COLOR_BGRA2RGBA)).save(path, 'WEBP', quality=88, alpha_quality=100, method=6)
+    return int(x0), int(y0), int(x1 - x0), int(y1 - y0)
+
+def box(b):
+    x, y, w, h = b
+    return {'x': round(x / W, 5), 'y': round(y / H, 5), 'w': round(w / W, 5), 'h': round(h / H, 5)}
+
+def build_stars(pid, ctx, out_dir, report):
+    """Step 7: the small bright stars of a night sky become layers of their own, painted out of far, so they can twinkle.
+    (Chapter 6's row of setting suns was tried as a sinking layer too: the suns merge with the bright clouds, so no.)"""
+    far = ctx['far']
+    sky = ctx['above'] & ~(cv2.dilate(ctx['stand'].astype(np.uint8), np.ones((31, 31), np.uint8)) > 0)
+    v = cv2.cvtColor(far, cv2.COLOR_BGR2HSV)[..., 2].astype(np.int16)
+    bg = cv2.medianBlur(v.astype(np.uint8), 31).astype(np.int16)
+    layers = []
+    if shots().get(pid, {}).get('tone') not in ('space', 'night', 'desert-night'): return layers   # bright bits of day clouds are not stars
+    spots = (v - bg > 40) & sky
+    n, lab, st, _ = cv2.connectedComponentsWithStats(spots.astype(np.uint8), 8)
+    keep = [i for i in range(1, n) if 3 <= st[i, cv2.CC_STAT_AREA] <= 600 and max(st[i, 2], st[i, 3]) <= 40]
+    if len(keep) < 8: return layers
+    rng = np.random.default_rng(len(keep))
+    group = rng.integers(0, 3, n)
+    whole = np.zeros(spots.shape, np.uint8)
+    pieces = []
+    for g in range(3):
+        m = np.isin(lab, [i for i in keep if group[i] == g])
+        if not m.any(): continue
+        a = soft(m, 3)
+        pieces.append((g, a))
+        whole |= (a > 0).astype(np.uint8)
+    for g, a in pieces:
+        b = save_piece(os.path.join(out_dir, f'stars-{g}.webp'), far, a)
+        layers.append(dict(box(b), src=f'stars-{g}.webp', k=0.6, far=True, twinkle=g))
+    ctx['far'] = cv2.inpaint(far, cv2.dilate(whole, np.ones((3, 3), np.uint8)) * 255, 4, cv2.INPAINT_TELEA)
+    report.append(f'{pid}: {len(keep)} stars')
+    return layers
+
+# characters whose outline takes in the airplane (it would breathe with them), and who wears a red scarf with loose ends
+STILL = {('02-f2', 'pilot'), ('03-f1', 'pilot')}
+SCARVES = {'prince', 'lamplighter'}
+
+def build_figures(pid, im, ctx, faces, out_dir, report):
+    """Step 5: a character standing on its own becomes a layer that breathes (scaled from its feet), with its red scarf's
+    loose ends as layers that sway from where they leave the body. Behind them is far's empty landscape."""
+    seg, above = ctx['seg'], ctx['above']
+    n, lab, st, cen = cv2.connectedComponentsWithStats((seg > 128).astype(np.uint8), 8)
+    owner = {}
+    for who, f in faces.items():
+        cx, cy = int((f['x'] + f['w'] / 2) * W), int((f['y'] + f['h'] / 2) * H)
+        win = lab[max(0, cy - 6):cy + 7, max(0, cx - 6):cx + 7]
+        ids, counts = np.unique(win[win > 0], return_counts=True)
+        if len(ids): owner.setdefault(int(ids[np.argmax(counts)]), []).append(who)
+    out, mid_a = [], ctx['mid_a']
+    for i, whos in owner.items():
+        x, y, w, h, area = st[i]
+        if len(whos) != 1 or w > 0.45 * W or area > 0.2 * W * H or h < 120 or (pid, whos[0]) in STILL:
+            report.append(f'{pid} {"+".join(whos)}: no breathing (shares its outline or is too big)')
+            continue
+        mask = lab == i
+        ff = mask.astype(np.uint8) * 255
+        cnts, _ = cv2.findContours(ff, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(ff, cnts, -1, 255, -1)
+        mask = ff > 0
+        # the scarf's loose ends: thin red parts away from the body
+        k = max(15, int(h * 0.12)) | 1
+        core = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0
+        thin = mask & ~(cv2.dilate(core.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0)
+        hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+        red = ((hsv[..., 0] < 12) | (hsv[..., 0] > 168)) & (hsv[..., 1] > 90) & (hsv[..., 2] > 60)
+        tails = cv2.morphologyEx((thin & red).astype(np.uint8), cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+        if whos[0] not in SCARVES: tails[:] = 0   # the fox's fur and the king's robe are red too
+        tn, tlab, tst, _ = cv2.connectedComponentsWithStats(tails, 8)
+        dist = cv2.distanceTransform((~core).astype(np.uint8), cv2.DIST_L2, 3)
+        fig_a = soft(mask, 2).astype(np.float32) / 255
+        tail_out = []
+        for j in range(1, tn):
+            if tst[j, cv2.CC_STAT_AREA] < 250 or max(tst[j, 2], tst[j, 3]) < 40: continue
+            tm = tlab == j
+            ta = soft(tm, 2)
+            ys, xs = np.nonzero(tm)
+            r = np.argmin(dist[ys, xs])   # where the end leaves the body
+            b = save_piece(os.path.join(out_dir, f'fig-{len(out)}-t{len(tail_out)}.webp'), im, ta)
+            tail_out.append(dict(box(b), src=f'fig-{len(out)}-t{len(tail_out)}.webp', px=round(xs[r] / W, 5), py=round(ys[r] / H, 5)))
+            fig_a *= 1 - ta.astype(np.float32) / 255
+        fa = (fig_a * 255).astype(np.uint8)
+        b = save_piece(os.path.join(out_dir, f'fig-{len(out)}.webp'), im, fa)
+        # mid no longer holds the character (far's empty landscape shows when it moves)
+        whole = np.maximum(soft(mask, 2), 0).astype(np.float32) / 255
+        mid_a[:] = (mid_a * (1 - whole)).astype(np.uint8)
+        out.append(dict(box(b), src=f'fig-{len(out)}.webp', ox=round((x + w / 2) / W, 5), oy=round((y + h) / H, 5), faces=whos, tails=tail_out))
+        report.append(f'{pid} {whos[0]}: breathes, {len(tail_out)} scarf ends')
+    return out
 
 def write_js(data):
     with open(os.path.join(BOOK, 'film', 'layers.js'), 'w') as f:
@@ -547,8 +657,7 @@ def build(ids):
         os.makedirs(out_dir, exist_ok=True)
         entry = {}
         deep = PICTURES[pid].get('horizon') or PICTURES[pid].get('space')
-        layers = build_depth(pid, im, out_dir, report) if deep else None
-        if layers: entry['layers'] = layers
+        ctx = build_depth(pid, im, out_dir, report) if deep else None
         faces = {}
         if '--depth' in sys.argv and pid in data:   # depth layers only: keep the faces already made
             faces = data[pid].get('faces', {})
@@ -556,6 +665,14 @@ def build(ids):
             f = build_face(pid, who, im, out_dir, report)
             if f: faces[who] = f
         if faces: entry['faces'] = faces
+        for old in glob.glob(os.path.join(out_dir, 'fig-*.webp')) + glob.glob(os.path.join(out_dir, 'stars-*.webp')):
+            os.remove(old)
+        if ctx:
+            stars = build_stars(pid, ctx, out_dir, report)
+            figures = build_figures(pid, im, ctx, faces, out_dir, report)
+            far_mid = write_depth(pid, im, out_dir, ctx)
+            entry['layers'] = far_mid[:1] + stars + far_mid[1:]   # stars and the sun between far and mid
+            if figures: entry['figures'] = figures
         if entry: data[pid] = entry
     write_js(data)
     print('\n'.join(report))

@@ -82,7 +82,7 @@ SETUP = r"""(async (pid) => {
   const F = window.LP_FILM;
   document.getElementById('splash').hidden = true;
   const st = document.createElement('style');
-  st.textContent = '#bar,#controls,#subtitle,#vignette,.mote,.star,.planet,.card3d,#stage::after{display:none!important} .pic .face{transition:none!important}';
+  st.textContent = '#bar,#controls,#subtitle,#vignette,.mote,.star,.planet,.card3d,#stage::after{display:none!important} .pic .face{transition:none!important} .pic,.pic *{animation:none!important}';
   document.head.appendChild(st);
   let i = F.steps.findIndex(s => s.img === pid && s.kind === 'picture');
   if (i < 0) i = F.steps.findIndex(s => s.img === pid);

@@ -1,6 +1,6 @@
 /* The Little Prince film — motion on the pictures (motion.md): depth layers that slide against each other as the camera
-   drifts (parallax), blinking eyes, mouths that open with the recorded voice, and the word being spoken lit up in the
-   subtitle. Everything comes from files made in advance, because nothing can be measured from file:// at run time:
+   drifts (parallax), blinking eyes, mouths that open with the recorded voice, characters breathing and their scarves
+   swaying, stars twinkling, and the word being spoken lit up in the subtitle. Everything comes from files made in advance, because nothing can be measured from file:// at run time:
    layers.js (tools/film-layers.py) and timing.js (tools/film-timing.py).
    film.js calls the hooks below. ?motion=0 turns the motion off (the plain pictures, as before); with
    prefers-reduced-motion only the subtitle word highlight stays. */
@@ -25,15 +25,43 @@ window.LP_FILM_MOTION = (function () {
     pic.innerHTML = `<img alt="" class="base" src="${url}">`;
     const b = { el: pic, far: [], faces: {}, blurred: false };
     const dir = url.replace(/[^/]*$/, '').replace(/pictures\/$/, '') + 'layers/' + img + '/';
+    // the far layer has 80 px of margin to slide in (tools/film-layers.py MARGIN); the stars slide with it
+    const margin = Math.max(0, -Math.min(0, ...(L.layers || []).map(l => l.x)) * 1200) * 0.9;
     (L.layers || []).forEach(l => {
       const el = document.createElement('img');
       el.alt = '';
-      el.className = 'layer' + (l.far ? ' far' : '');
+      el.className = 'layer' + (l.far ? ' far' : '') + (l.twinkle !== undefined ? ' twinkle t' + l.twinkle : '');
       el.style.cssText = `left:${pct(l.x)};top:${pct(l.y)};width:${pct(l.w)};height:${pct(l.h)}`;
       el.onerror = () => { pic.querySelectorAll('.layer').forEach(x => x.remove()); b.far = []; };
       el.src = dir + l.src;
       pic.appendChild(el);
-      if (l.k !== 1) b.far.push({ el, k: l.k, m: [-l.x * 1200, -l.y * 900] });
+      if (l.k !== 1) b.far.push({ el, k: l.k, lim: margin });
+    });
+    // characters standing on their own breathe (from their feet) and their scarf ends sway; their faces go with them
+    const holder = {};
+    (L.figures || []).forEach(f => {
+      const fig = document.createElement('div');
+      fig.className = 'fig';
+      fig.style.transformOrigin = `${pct(f.ox)} ${pct(f.oy)}`;
+      fig.style.animationDelay = `${-rand(0, 8).toFixed(2)}s`;
+      const add = (s, cls) => {
+        const el = document.createElement('img');
+        el.alt = ''; el.className = cls;
+        el.style.cssText = `left:${pct(s.x)};top:${pct(s.y)};width:${pct(s.w)};height:${pct(s.h)}`;
+        el.onerror = () => fig.remove();
+        el.src = dir + s.src;
+        fig.appendChild(el);
+        return el;
+      };
+      add(f, 'body');
+      (f.tails || []).forEach(s => {
+        const el = add(s, 'tail');
+        el.style.transformOrigin = `${((s.px - s.x) / s.w * 100).toFixed(2)}% ${((s.py - s.y) / s.h * 100).toFixed(2)}%`;
+        el.style.animationDuration = rand(6, 9).toFixed(1) + 's';
+        el.style.animationDelay = `${-rand(0, 9).toFixed(2)}s`;
+      });
+      (f.faces || []).forEach(who => { holder[who] = fig; });
+      pic.appendChild(fig);
     });
     Object.keys(L.faces || {}).forEach(who => {
       const f = L.faces[who], parts = {};
@@ -42,7 +70,7 @@ window.LP_FILM_MOTION = (function () {
         el.className = 'face ' + part;
         el.style.cssText = `left:${pct(f.x)};top:${pct(f.y)};width:${pct(f.w)};height:${pct(f.h)};` +
           `background-image:url("${dir + f.src}");background-position:${i * 50}% 0`;
-        pic.appendChild(el);
+        (holder[who] || pic).appendChild(el);
         parts[part] = el;
       });
       parts.blink = { next: performance.now() + rand(1500, 5000), until: 0, again: false };
@@ -114,7 +142,7 @@ window.LP_FILM_MOTION = (function () {
     // where the far layer's ground would show above the edge of the near ground)
     const dx = cam.x - st.x, dy = cam.y - st.y;
     for (const l of b.far) {
-      const lim = Math.min(l.m[0], l.m[1]) * 0.9;
+      const lim = l.lim;
       const tx = Math.max(-lim, Math.min(lim, dx * (1 - l.k))), ty = Math.max(-lim, Math.min(lim, dy * (1 - l.k) * 0.35));
       l.el.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px)`;
       // the far layer goes soft in close-ups (a fixed value, so it is not redrawn every frame)

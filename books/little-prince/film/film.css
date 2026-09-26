@@ -57,6 +57,18 @@ body[data-tone="day"] .star, body[data-tone="desert-day"] .star, body[data-tone=
 .pic .far.soft { filter: blur(1.5px); }
 .pic .face { position: absolute; background-size: 300% 100%; background-repeat: no-repeat; opacity: 0; transition: opacity 50ms linear; }
 .pic .face.on { opacity: 1; }
+/* characters breathe (0.4 %, from the feet) and their scarf ends sway; stars twinkle.
+   Only transforms and opacity: the GPU moves them without redrawing the picture. */
+.pic .fig { position: absolute; inset: 0; animation: lp-breathe 4s ease-in-out infinite alternate; will-change: transform; }
+.pic .fig img { position: absolute; display: block; }
+.pic .fig .tail { animation: lp-sway 7s ease-in-out infinite; }
+.pic .twinkle { animation: lp-twinkle 3.2s ease-in-out infinite; }
+.pic .twinkle.t1 { animation-duration: 4.1s; animation-delay: -1.3s; }
+.pic .twinkle.t2 { animation-duration: 5.3s; animation-delay: -2.9s; }
+@keyframes lp-breathe { from { transform: none; } to { transform: scaleY(1.004); } }
+@keyframes lp-sway { 0%, 100% { transform: none; } 30% { transform: rotate(1.8deg) skewX(.6deg); } 70% { transform: rotate(-1.5deg) skewX(-.5deg); } }
+@keyframes lp-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
 
 /* dust / sparkle motes floating between the camera and the picture */
 .mote { width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: rgba(255, 236, 190, .85); box-shadow: 0 0 12px rgba(255, 220, 150, .8);
