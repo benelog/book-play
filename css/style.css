@@ -397,3 +397,41 @@ mark.w-hit { background: var(--mark); color: inherit; border-radius: 2px; box-sh
 .title-page .dedication { margin: 14px 0 6px; padding: 12px 18px; border-left: 2px solid var(--gold-deep); font-style: italic; color: var(--ink); }
 .title-page .dedication p { margin: 0 0 8px; line-height: 1.55; }
 .title-page .dedication p:last-child { margin-bottom: 0; }
+
+/* ---------- audiobook (js/listen.js) ---------- */
+.title-page .menu .listen-link { border-color: var(--gold-deep); }
+.listen { color: var(--ink); }
+.listen .ls-now { min-height: 7.2em; padding: 14px 4px 10px; border-top: 1px solid var(--paper-shadow); }
+.listen .ls-who { display: block; font-size: 13px; letter-spacing: .08em; min-height: 1.2em; filter: brightness(.6) saturate(1.4); }
+.listen .ls-line { margin: 4px 0 0; font-size: 21px; line-height: 1.5; }
+.listen .ls-bar { height: 4px; background: var(--paper-shadow); border-radius: 2px; overflow: hidden; }
+.listen .ls-bar span { display: block; height: 100%; width: 0; background: var(--gold-deep); transition: width .4s; }
+.listen .ls-time { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink-soft); margin: 5px 0 10px; flex-wrap: wrap; }
+.listen .ls-controls { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 6px 0 14px; }
+.listen .ls-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--ink-soft); background: transparent; color: var(--ink); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.listen .ls-btn svg { width: 22px; height: 22px; fill: currentColor; }
+.listen .ls-btn.big { width: 68px; height: 68px; background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.listen .ls-btn.big svg { width: 30px; height: 30px; }
+.listen .ls-btn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+.listen .ls-btn.big:hover { background: #45434f; color: var(--paper); }
+.listen .ls-speed { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 14px; color: var(--ink-soft); margin-bottom: 10px; }
+.listen .ls-speed span { margin-right: 4px; }
+.listen .ls-speed .btn { border-color: var(--paper-shadow); color: var(--ink); min-width: 46px; }
+.listen .ls-speed .btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.listen .ls-opts { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; color: var(--ink-soft); }
+.listen .ls-opts label { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.listen .ls-opts select { background: var(--paper); color: var(--ink); border: 1px solid var(--paper-shadow); padding: 3px 6px; max-width: 240px; }
+.listen .ls-note { font-size: 13px; color: var(--ink-soft); margin: 10px 0 4px; }
+.listen .ls-note .ko-help { display: block; font-family: var(--font-ko); }
+.listen .ls-problem { font-size: 14px; color: var(--rose); margin: 6px 0; }
+.listen .ls-problem[hidden] { display: none; }
+.listen .ls-lines { list-style: none; margin: 8px 0 0; padding: 8px 2px 0; border-top: 1px solid var(--paper-shadow); max-height: 34vh; overflow-y: auto; font-size: 15px; line-height: 1.55; }
+.listen .ls-lines li { padding: 3px 6px; border-radius: 2px; cursor: pointer; color: var(--ink-soft); }
+.listen .ls-lines li:hover { background: rgba(217,180,90,.18); }
+.listen .ls-lines li.now { background: var(--mark); color: var(--ink); }
+.listen .ls-lines li b { font-weight: 600; font-size: 13px; filter: brightness(.6) saturate(1.4); }
+@media (max-width: 760px) {
+  .listen .ls-line { font-size: 19px; }
+  .listen .ls-controls { gap: 10px; }
+  .listen .ls-lines { max-height: 40vh; }
+}

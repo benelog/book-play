@@ -95,6 +95,15 @@ window.LP_PWA = (function () {
         }
       } catch (e) { /* no layers */ }
     }
+    // the audiobook's recorded voices (audio.js lists audio/<key>.mp3 as { "<key>": ms, … }) and its cast
+    if (await put(`${dir}/audio.js`)) {
+      try {
+        const r = await cache.match(`${dir}/audio.js`);
+        const keys = r ? [...(await r.text()).matchAll(/"([0-9a-f]{8})":/g)].map(m => m[1]) : [];
+        for (const k of keys) await put(`${dir}/audio/${k}.mp3`);
+      } catch (e) { /* no recorded voices */ }
+      await put(`${dir}/cast.js`);
+    }
     for (const c of ['cover.jpg', 'cover.png', 'cover.webp']) if (await put(`${dir}/images/${c}`)) break;
     tick();
     for (let n = 1; n <= chapters; n++) {

@@ -3,6 +3,7 @@
 (function () {
   const SITE = 'Book Play';
   const S = window.LP_STORAGE, P = window.LP_PARSER, M = window.LP_MATCHER, T = window.LP_TTS, D = window.LP_DICT, PWA = window.LP_PWA;
+  const N = window.LP_NARRATION, L = window.LP_LISTEN;
   const LIBRARY = window.LP_LIBRARY || [];
   const IMG_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
   const MAX_MISSES = 3;
@@ -123,14 +124,14 @@
   }
 
   // ---------- routing ----------
-  // Served over http(s):  /books/<id>            /books/<id>/chapters/<n>   /books/<id>/chapters/<n>/play
+  // Served over http(s):  /books/<id>            /books/<id>/chapters/<n>   /books/<id>/chapters/<n>/play   /books/<id>/listen
   // Opened from file://:  index.html#/books/<id>  (same paths after the #)
-  const ROUTE = /^(.*?)\/books\/([^/#?]+)(?:\/chapters\/(\d+)(?:\/(play|read))?)?\/?$/;
+  const ROUTE = /^(.*?)\/books\/([^/#?]+)(?:\/(listen)|\/chapters\/(\d+)(?:\/(play|read))?)?\/?$/;
   const useHash = location.protocol === 'file:';
   function parseRoute() {
     const target = useHash ? location.hash.replace(/^#/, '') : location.pathname;
     const m = target.match(ROUTE);
-    if (m) return { prefix: useHash ? '' : m[1], id: decodeURIComponent(m[2]), chapter: m[3] ? +m[3] : null, mode: m[4] || 'read' };
+    if (m) return { prefix: useHash ? '' : m[1], id: decodeURIComponent(m[2]), chapter: m[4] ? +m[4] : null, mode: m[3] || m[5] || 'read' };
     // legacy ?book=<id>
     const q = new URLSearchParams(location.search).get('book');
     return { prefix: useHash ? '' : location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, ''), id: q, chapter: null, mode: 'read' };
@@ -141,14 +142,14 @@
   } catch (e) { /* ignore */ }
   const route = parseRoute();
   function urlFor(id, chapter, mode) {
-    let path = `/books/${encodeURIComponent(id)}` + (chapter ? `/chapters/${chapter}` + (mode === 'play' ? '/play' : '') : '');
+    let path = `/books/${encodeURIComponent(id)}` + (mode === 'listen' ? '/listen' : chapter ? `/chapters/${chapter}` + (mode === 'play' ? '/play' : '') : '');
     return useHash ? `${location.pathname}#${path}` : route.prefix + path;
   }
   const libraryUrl = () => useHash ? location.pathname : (route.prefix || '') + '/';
   function openBook(id) { location.href = urlFor(id); }
   function syncUrl() {
     if (!BOOK) return;
-    const url = view.name === 'chapter' ? urlFor(BOOK.id, view.num, view.mode) : urlFor(BOOK.id);
+    const url = view.name === 'chapter' ? urlFor(BOOK.id, view.num, view.mode) : view.name === 'listen' ? urlFor(BOOK.id, null, 'listen') : urlFor(BOOK.id);
     const current = useHash ? location.pathname + location.hash : location.pathname;
     if (current !== url) history.pushState({ view }, '', url);
   }
@@ -156,17 +157,19 @@
     if (!BOOK) return;
     const r = parseRoute();
     if (r.id !== BOOK.id) { location.reload(); return; }
-    go(r.chapter ? { name: 'chapter', num: Math.min(Math.max(1, r.chapter), TOTAL), mode: r.mode } : { name: 'title' }, true);
+    go(routeView(r), true);
   });
+  const routeView = (r) => r.mode === 'listen' ? { name: 'listen' } : r.chapter ? { name: 'chapter', num: Math.min(Math.max(1, r.chapter), TOTAL), mode: r.mode } : { name: 'title' };
   if (useHash) window.addEventListener('hashchange', () => { const r = parseRoute(); if (!BOOK || r.id !== BOOK.id) location.reload(); });
 
   // ---------- navigation ----------
   let turning = false;
   function go(next, fromHistory) {
     T.stop(); clearInterval(typeTimer); D.close();
+    if (view.name === 'listen') L.stop();
     const render = () => {
       view = next;
-      ({ library: renderLibrary, title: renderTitle, select: renderSelect, chapter: renderChapter })[view.name]();
+      ({ library: renderLibrary, title: renderTitle, select: renderSelect, chapter: renderChapter, listen: renderListen })[view.name]();
       if (!fromHistory) syncUrl();
       window.scrollTo(0, 0);
       const pr = document.getElementById('page-right');
@@ -218,7 +221,7 @@
       case 'word': return { what: `Looked up “${e.word}”${e.ko ? ` <span class="ko">${esc(e.ko)}</span>` : ''}`, where: title + (ch ? `, ${ch}` : ''), raw: true };
       case 'listen': return { what: `Listened to ${ch}`, where: title };
       case 'done': return { what: `Finished ${ch}`, where: title };
-      default: return { what: `${e.mode === 'play' ? 'Played' : 'Read'} ${ch}`, where: title };
+      default: return { what: `${e.mode === 'play' ? 'Played' : e.mode === 'listen' ? 'Listened to the audiobook,' : 'Read'} ${ch}`, where: title };
     }
   }
   let showAllHistory = false;
@@ -245,7 +248,7 @@
       }).join('')}</ol>`;
     }
     return `<section class="desk-note">${head}
-      ${last ? `<div class="continue"><span>You were ${last.type === 'done' ? 'finishing' : last.mode === 'play' ? 'playing' : 'reading'} <b>${esc(bookOf(last.book).title)}</b>, Chapter ${roman(last.chapter)}${last.title ? ` · ${esc(last.title)}` : ''} <span class="muted">(${esc(ago(last.t))})</span></span>
+      ${last ? `<div class="continue"><span>You were ${last.type === 'done' ? 'finishing' : last.mode === 'play' ? 'playing' : last.mode === 'listen' ? 'listening to' : 'reading'} <b>${esc(bookOf(last.book).title)}</b>, Chapter ${roman(last.chapter)}${last.title ? ` · ${esc(last.title)}` : ''} <span class="muted">(${esc(ago(last.t))})</span></span>
         <button class="btn small primary" id="btn-continue-last">Continue →</button></div>` : ''}
       <div class="stats">${stat(count('done'), 'chapter(s) finished')}${stat(count('listen'), 'chapter(s) heard')}${stat(count('word'), 'word(s) looked up')}${stat(st, 'day(s) in a row')}<span class="muted">· this week</span></div>
       ${words.length ? `<div class="chips">${words.map(e => `<button class="chip" data-word="${esc(e.word)}" title="Look up again">${esc(e.word)}${e.ko ? `<span class="ko">${esc(e.ko)}</span>` : ''}</button>`).join('')}</div>` : ''}
@@ -256,10 +259,11 @@
       </div>
     </section>`;
   }
+  const modeOf = (e) => (e.mode === 'play' || e.mode === 'listen' ? e.mode : 'read');
   function wireRecent() {
     const h = S.getHistory();
     const cont = document.getElementById('btn-continue-last');
-    if (cont) cont.onclick = () => { const last = h.find(e => e.type !== 'word' && bookOf(e.book) && e.chapter); if (last) location.href = urlFor(last.book, last.chapter, last.mode === 'play' ? 'play' : 'read'); };
+    if (cont) cont.onclick = () => { const last = h.find(e => e.type !== 'word' && bookOf(e.book) && e.chapter); if (last) location.href = urlFor(last.book, last.chapter, modeOf(last)); };
     const tog = document.getElementById('btn-history-toggle');
     if (tog) tog.onclick = () => { showAllHistory = !showAllHistory; renderLibrary(); };
     const clr = document.getElementById('btn-history-clear');
@@ -268,7 +272,7 @@
     app.querySelectorAll('.hrow').forEach(b => b.onclick = () => {
       const e = h[+b.dataset.i]; if (!e) return;
       if (e.type === 'word') { D.open(e.word, b, { speak: (t) => T.speakOnce(t) }); return; }
-      if (bookOf(e.book) && e.chapter) location.href = urlFor(e.book, e.chapter, e.mode === 'play' ? 'play' : 'read');
+      if (bookOf(e.book) && e.chapter) location.href = urlFor(e.book, e.chapter, modeOf(e));
     });
   }
   function syncInstallBtn() { const b = document.getElementById('btn-install'); if (b) b.hidden = !PWA.canInstall() || PWA.isStandalone(); }
@@ -358,7 +362,7 @@
     chapters = S.getChapters(); progress = S.getProgress(); info = S.getBookInfo();
     document.title = `${book.title} · ${SITE}`;
     autoImport();
-    go(route.chapter ? { name: 'chapter', num: Math.min(Math.max(1, route.chapter), TOTAL), mode: route.mode } : { name: 'title' }, true);
+    go(routeView(route), true);
   }
 
   // Attribution line under the reader text: the library's text credit (what · licence), else nothing.
@@ -401,6 +405,7 @@
         <div class="menu">
           <button class="btn primary" id="btn-continue">${done || progress.current > 1 ? `Continue · Chapter ${roman(progress.current)}` : 'Start from the beginning'}</button>
           <button class="btn" id="btn-select">Choose a chapter</button>
+          ${hasText ? '<button class="btn listen-link" id="btn-listen">🎧 Listen to the whole book <span class="ko-tag">오디오북</span></button>' : ''}
           ${BOOK.film ? `<a class="btn film-link" href="${ROOT}${esc(BOOK.film)}">▶ Watch the whole book as a film <span class="ko-tag">낭독 영화</span></a>` : ''}
           <button class="btn" id="btn-reset">Clear progress</button>
         </div>
@@ -430,6 +435,7 @@
     document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
     document.getElementById('btn-continue').onclick = () => go({ name: 'chapter', num: Math.min(progress.current, TOTAL), mode: 'read' });
     document.getElementById('btn-select').onclick = () => go({ name: 'select' });
+    if (hasText) document.getElementById('btn-listen').onclick = () => go({ name: 'listen', autoplay: true });
     document.getElementById('btn-reset').onclick = () => {
       if (!confirm('Clear all progress for this book? (The book text stays.)')) return;
       progress = S.resetProgress(); renderTitle();
@@ -546,6 +552,7 @@
         <button class="btn small" id="tts-stop" disabled>■ Stop</button>
         <label>Voice <select id="voice"></select></label>
         <label>Speed <input type="range" id="rate" min="0.6" max="1.4" step="0.05" value="${settings.rate}"><span id="rate-v">${settings.rate}</span></label>
+        <button class="btn small" id="tts-book" title="Listen on from this chapter to the end of the book, also with the screen off">🎧 Audiobook</button>
       </div>
       <div class="reader-text" id="reader-text">${html}</div>
       ${(info.creditAuto ? defaultCredit() : info.credit) ? `<div class="credit">${esc(info.creditAuto ? defaultCredit() : info.credit)}</div>` : ''}
@@ -585,6 +592,7 @@
       }, from);
     }
     btnPlay.onclick = () => play(0);
+    document.getElementById('tts-book').onclick = () => go({ name: 'listen', from: n, autoplay: true });
     btnPause.onclick = () => {
       if (T.isPaused()) { T.resume(); btnPause.textContent = '❚❚ Pause'; }
       else { T.pause(); btnPause.textContent = '▶ Resume'; }
@@ -619,6 +627,210 @@
       }
       save(); go({ name: 'chapter', num: n, mode: 'play' });
     };
+  }
+
+  // ---------- audiobook ----------
+  // The whole book read aloud from the title to the last line, on and on with the screen off (js/listen.js).
+  // Steps come from js/narration.js; a step plays its recording when the book has one (books/<id>/audio/<key>.mp3,
+  // made by tools/book-voices.py; The Little Prince uses its film's), else the browser voice reads it.
+  const SPEEDS = [0.6, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+  const ICON = {
+    play: '<path d="M7 4v16l13-8z"/>', pause: '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>',
+    prev: '<path d="M11 6v12L2 12zM21 6v12l-9-6z"/>', next: '<path d="M13 6v12l9-6zM3 6v12l9-6z"/>',
+    prevch: '<path d="M5 5h2v14H5zM19 5v14L8 12z"/>', nextch: '<path d="M17 5h2v14h-2zM5 5v14l11-7z"/>'
+  };
+  const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`;
+  let listenData = null;   // built once per book: { steps, starts, cast, recorded }
+  async function listenSetup() {
+    if (listenData) return listenData;
+    await loadScript(`${DIR}/${N.audioDir(BOOK)}.js`);   // { key: ms } of the recordings that exist
+    await loadScript(`${DIR}/${N.castFile(BOOK)}`);
+    const recorded = window.LP_AUDIO || window.LP_FILM_AUDIO || {};
+    const cast = window.LP_CAST || window.LP_FILM_CAST || null;
+    const parsed = window.LP_BOOK && window.LP_BOOK.text ? P.parse(window.LP_BOOK.text) : { chapters: chapters || [], front: info.front || [] };
+    const steps = N.forBook(BOOK, parsed, SCENES, cast, P.picture).steps.filter(s => s.say);
+    steps.forEach(s => { s.key = N.keyOf(s, cast); s.ms = typeof recorded === 'object' ? recorded[s.key] || 0 : 0; });
+    const starts = {};
+    steps.forEach((s, k) => { if (!(s.ch in starts)) starts[s.ch] = k; });
+    listenData = { steps, starts, cast, recorded: steps.filter(s => s.ms).length };
+    return listenData;
+  }
+  function hms(ms) {
+    const m = Math.round(ms / 60000);
+    return m >= 60 ? `${Math.floor(m / 60)} h ${pad2(m % 60)} min` : `${Math.max(1, m)} min`;
+  }
+  function renderListen() {
+    const myView = view;
+    bookShell(`<div class="chapter-num" id="ls-chnum">&nbsp;</div><div class="picture" id="ls-picture">${ART.cover()}</div><div class="caption" id="ls-caption"></div>`,
+      `<div class="chapter-head"><div><div class="num">AUDIOBOOK · ${esc(BOOK.title)}</div><div class="title" id="ls-title">&nbsp;</div></div></div>
+      <div id="body"><p class="muted">Getting the book ready…</p></div>`,
+      { actions: '<button class="btn small" id="btn-select">Contents</button><button class="btn small" id="btn-home">Title</button><button class="btn small" id="btn-lib">Library</button>', folioRight: 'AUDIOBOOK' });
+    document.getElementById('btn-select').onclick = () => go({ name: 'select' });
+    document.getElementById('btn-home').onclick = () => go({ name: 'title' });
+    document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
+    listenSetup().then(d => { if (view === myView) drawListen(d); });
+  }
+  function drawListen(d) {
+    const { steps, starts, cast } = d;
+    const body = document.getElementById('body');
+    if (!steps.length) { body.innerHTML = `<div class="panel"><h3>No book text</h3><p>There is nothing to read aloud in ${esc(DIR)}/text/ yet.</p></div>`; return; }
+    const audioDir = `${DIR}/${N.audioDir(BOOK)}`;
+    const chNums = Object.keys(starts).map(Number).sort((a, b) => a - b);
+    // time left, at speed 1: the recording's length, or a guess for the browser voice, plus the pauses
+    const dur = steps.map(s => (s.ms || 1000 * s.say.length / 14) + 450);
+    const rest = new Array(steps.length + 1).fill(0);
+    for (let k = steps.length - 1; k >= 0; k--) rest[k] = rest[k + 1] + dur[k];
+    const chEnd = (ch) => { const nx = chNums.find(c => c > ch); return nx == null ? steps.length : starts[nx]; };
+    const who = (s) => N.character(cast, s.who);
+    // the next chapter, or back to the start of this one (the previous one when this one has only just begun)
+    function jump(k, dir) {
+      const ch = steps[k].ch;
+      if (dir > 0) { const nx = chNums.find(c => c > ch); return nx == null ? k : starts[nx]; }
+      if (k - starts[ch] > 2) return starts[ch];
+      const pv = chNums.filter(c => c < ch).pop();
+      return pv == null ? 0 : starts[pv];
+    }
+    const chName = (ch) => ch ? `Chapter ${roman(ch)}${meta(ch) && meta(ch).title ? ` · ${meta(ch).title}` : ''}` : 'Title page';
+
+    // where to start: the chapter asked for, else where the listener stopped, else the beginning
+    const saved = S.getListen();
+    let at = 0;
+    if (saved && steps[saved.i] && steps[saved.i].ch === saved.ch) at = saved.i;
+    else if (saved && saved.ch in starts) at = starts[saved.ch];
+    if (view.from && view.from in starts && !(steps[at].ch === view.from)) at = starts[view.from];
+
+    const rec = d.recorded, total = steps.length;
+    const note = rec === total
+      ? 'Read with recorded voices. You can lock your phone: it plays on to the end of the book.'
+      : rec ? `Recorded voices for ${rec} of ${total} lines; the browser voice reads the rest.`
+      : 'Read by the browser voice.';
+    const noteKo = rec === total ? '녹음된 목소리로 읽습니다. 화면을 꺼도 책 끝까지 이어서 재생됩니다.'
+      : '녹음이 없는 줄은 브라우저 음성으로 읽습니다. 화면을 끄면 안드로이드 Chrome은 대개 계속 읽지만, iPhone은 멈출 수 있습니다.';
+    body.innerHTML = `<div class="listen">
+        <div class="ls-now"><span class="ls-who" id="ls-who"></span><p class="ls-line" id="ls-line"></p></div>
+        <div class="ls-bar" aria-hidden="true"><span id="ls-fill"></span></div>
+        <div class="ls-time"><span id="ls-pos"></span><span id="ls-left"></span></div>
+        <div class="ls-controls">
+          <button class="ls-btn" id="ls-prevch" title="Previous chapter" aria-label="Previous chapter">${icon('prevch')}</button>
+          <button class="ls-btn" id="ls-prev" title="Previous line" aria-label="Previous line">${icon('prev')}</button>
+          <button class="ls-btn big" id="ls-play" title="Play" aria-label="Play">${icon('play')}</button>
+          <button class="ls-btn" id="ls-next" title="Next line" aria-label="Next line">${icon('next')}</button>
+          <button class="ls-btn" id="ls-nextch" title="Next chapter" aria-label="Next chapter">${icon('nextch')}</button>
+        </div>
+        <div class="ls-speed" role="group" aria-label="Speed"><span>Speed</span>${SPEEDS.map(r => `<button class="btn small ${r === settings.listenRate ? 'active' : ''}" data-r="${r}">${r}×</button>`).join('')}</div>
+        <div class="ls-opts">
+          <label>Chapter <select id="ls-chapter">${chNums.map(c => `<option value="${c}">${esc(chName(c))}</option>`).join('')}</select></label>
+          ${rec < total ? '<label>Browser voice <select id="ls-voice"></select></label>' : ''}
+        </div>
+        <p class="ls-note">${esc(note)}${ko(noteKo)}</p>
+        <p class="ls-problem" id="ls-problem" hidden></p>
+        <ol class="ls-lines" id="ls-lines"></ol>
+      </div>`;
+    const $ = (id) => document.getElementById(id);
+    const playBtn = $('ls-play'), linesEl = $('ls-lines'), problem = $('ls-problem');
+
+    const myView = view;
+    let coverUrl = null, shownCh = null, shownImg = null, ended = false;
+    probeCover(DIR, url => { coverUrl = url; if (shownImg === 'cover') showImg('cover'); });
+    function showImg(img) {
+      shownImg = img;
+      const el = $('ls-picture'); if (!el) return;
+      const ch = /^chapter-(\d+)$/.exec(img);
+      const put = (url, fallback) => { if (view !== myView || shownImg !== img) return; el.innerHTML = url ? `<img src="${url}" alt="">` : fallback; };
+      if (img === 'cover') put(coverUrl, ART.cover());
+      else if (ch) probeImage(+ch[1], url => put(url, ART.chapter(+ch[1])));
+      else { const n = parseInt(img, 10); el.innerHTML = `<img src="${DIR}/images/pictures/${esc(img)}.jpg" alt="">`; el.firstChild.onerror = () => probeImage(n, url => put(url, ART.chapter(n))); }
+    }
+    function showChapter(ch) {
+      shownCh = ch;
+      $('ls-chnum').innerHTML = ch ? `CHAPTER ${roman(ch)}` : '&nbsp;';
+      $('ls-title').innerHTML = ch ? `${esc((meta(ch) || {}).title || '')}${settings.koHelp && meta(ch) && meta(ch).ko ? `<span class="ko">${esc(meta(ch).ko)}</span>` : ''}` : esc(BOOK.title);
+      $('ls-chapter').value = String(ch);
+      const from = starts[ch], to = chEnd(ch);
+      linesEl.innerHTML = steps.slice(from, to).map((s, j) => {
+        const c = who(s), named = s.who && s.who !== 'narrator';
+        return `<li data-i="${from + j}" class="${s.ms ? '' : 'tts'}">${named ? `<b style="color:${esc(c.color || '')}">${esc(c.name || s.who)}</b> ` : ''}${esc(s.text || s.say)}</li>`;
+      }).join('');
+      if (ch) S.addHistory({ type: 'open', book: BOOK.id, chapter: ch, title: meta(ch) ? meta(ch).title : '', mode: 'listen' });
+    }
+    function heard(ch) {
+      if (!ch) return;
+      progress.read[ch] = true; save();
+      S.addHistory({ type: 'listen', book: BOOK.id, chapter: ch, title: meta(ch) ? meta(ch).title : '' });
+    }
+    function show(k) {
+      const s = steps[k];
+      if (s.ch !== shownCh) showChapter(s.ch);
+      if (s.img !== shownImg) showImg(s.img);
+      const c = who(s), named = s.who && s.who !== 'narrator';
+      $('ls-who').textContent = named ? c.name || s.who : '';
+      $('ls-who').style.color = named ? c.color || '' : '';
+      $('ls-line').textContent = s.text || s.say;
+      $('ls-fill').style.width = `${(100 * k / Math.max(1, total - 1)).toFixed(2)}%`;
+      const r = settings.listenRate, end = chEnd(s.ch);
+      $('ls-pos').textContent = s.ch ? `Line ${k - starts[s.ch] + 1} / ${end - starts[s.ch]}` : '';
+      $('ls-left').textContent = `about ${hms(rest[k] / r)} left` + (s.ch ? ` · ${hms((rest[k] - rest[end]) / r)} in this chapter` : '');
+      linesEl.querySelectorAll('li.now').forEach(el => el.classList.remove('now'));
+      const li = linesEl.querySelector(`li[data-i="${k}"]`);
+      if (li) { li.classList.add('now'); if (!document.hidden) li.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' }); }
+    }
+    function setPlaying(p) {
+      playBtn.innerHTML = icon(p ? 'pause' : 'play');
+      playBtn.title = p ? 'Pause' : 'Play'; playBtn.setAttribute('aria-label', playBtn.title);
+      if (p) problem.hidden = true;
+    }
+
+    L.load({
+      steps,
+      src: (k) => (steps[k] && steps[k].ms ? `${audioDir}/${steps[k].key}.mp3` : null),
+      voice: (k) => ({ voice: T.pick(), pitch: (who(steps[k]).pitch) || 1 }),
+      gap: (k) => {
+        const a = steps[k], b = steps[k + 1];
+        if (!b) return 0;
+        if (b.ch !== a.ch) return 2000;
+        if (a.kind !== 'line') return 900;
+        return a.para === b.para ? 250 : 650;
+      },
+      meta: (k) => ({ title: chName(steps[k].ch), artist: BOOK.author || '', album: BOOK.title, artwork: coverUrl }),
+      chapter: jump,
+      onStep: (k, auto) => {
+        if (auto && shownCh != null && steps[k].ch !== shownCh) heard(shownCh);
+        ended = false;
+        show(k);
+        S.setListen({ i: k, ch: steps[k].ch });
+      },
+      onState: setPlaying,
+      onEnd: () => {
+        heard(steps[steps.length - 1].ch);
+        ended = true;
+        $('ls-who').textContent = '';
+        $('ls-line').textContent = 'The end. Press play to listen again from the beginning.';
+        S.setListen({ i: 0, ch: 0 });
+      },
+      onProblem: (msg) => { problem.textContent = msg; problem.hidden = false; }
+    }, at);
+    T.setVoice(settings.voice);
+    L.setRate(settings.listenRate);
+    show(at);
+
+    playBtn.onclick = () => { if (L.isPlaying()) L.pause(); else if (ended) L.play(0); else L.resume(); };
+    $('ls-prev').onclick = () => L.play(Math.max(0, L.index() - 1));
+    $('ls-next').onclick = () => L.play(Math.min(total - 1, L.index() + 1));
+    $('ls-prevch').onclick = () => L.play(jump(L.index(), -1));
+    $('ls-nextch').onclick = () => L.play(jump(L.index(), +1));
+    $('ls-chapter').onchange = (e) => L.play(starts[+e.target.value]);
+    linesEl.onclick = (e) => { const li = e.target.closest('li[data-i]'); if (li) L.play(+li.dataset.i); };
+    body.querySelectorAll('.ls-speed button').forEach(b => b.onclick = () => {
+      settings.listenRate = +b.dataset.r; saveSettings(); L.setRate(settings.listenRate);
+      body.querySelectorAll('.ls-speed button').forEach(x => x.classList.toggle('active', x === b));
+      show(L.index());
+    });
+    const voiceSel = $('ls-voice');
+    if (voiceSel) {
+      T.onVoices(vs => { voiceSel.innerHTML = vs.map(v => `<option value="${esc(v.name)}" ${v.name === settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('') || '<option>default</option>'; });
+      voiceSel.onchange = () => { settings.voice = voiceSel.value; saveSettings(); T.setVoice(settings.voice); };
+    }
+    if (view.autoplay) { view.autoplay = false; L.play(at); }
   }
 
   // ---------- adventure scenes ----------

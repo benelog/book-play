@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mouth curves and word times for the recorded voices of The Little Prince film (books/little-prince/film/).
 
-For every recording in film/audio/ (listed in film/audio.js by tools/film-voices.py) this writes one entry of
+For every recording in film/audio/ (listed in film/audio.js by tools/book-voices.py little-prince) this writes one entry of
 film/timing.js, keyed like the recording:
   mouth  loudness every 50 ms as one digit 0-9 (normalised to the loudest moment of the line); the film opens the
          speaker's mouth by it (motion.js)
@@ -98,7 +98,7 @@ def write(data):
 
 def main():
     args = sys.argv[1:]
-    spec = importlib.util.spec_from_file_location('film_voices', os.path.join(ROOT, 'tools', 'film-voices.py'))
+    spec = importlib.util.spec_from_file_location('book_voices', os.path.join(ROOT, 'tools', 'book-voices.py'))
     fv = importlib.util.module_from_spec(spec); spec.loader.exec_module(fv)
     items = [i for i in fv.steps() if os.path.exists(os.path.join(AUDIO, i['key'] + '.mp3'))]
     data = {k: v for k, v in load_existing().items() if k in {i['key'] for i in items}}

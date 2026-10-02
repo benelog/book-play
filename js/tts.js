@@ -67,6 +67,7 @@ window.LP_TTS = (function () {
   return {
     supported,
     voices: () => voices,
+    pick: pickVoice,
     onVoices(fn) { listeners.push(fn); if (voices.length) fn(voices); },
     setRate(r) { rate = Math.min(2, Math.max(0.5, Number(r) || 1)); },
     setVoice(name) { voiceName = name || null; },

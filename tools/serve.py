@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Static server with pretty URLs for the game.
-   /books/<id>, /books/<id>/chapters/<n>, /books/<id>/chapters/<n>/play  -> index.html
+   /books/<id>, /books/<id>/chapters/<n>, /books/<id>/chapters/<n>/play, /books/<id>/listen  -> index.html
    Everything else is served as a file. Usage: python3 tools/serve.py [port] (default 8765)"""
 import http.server, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROUTE = re.compile(r'^/books/[^/]+(?:/chapters/\d+(?:/(?:play|read))?)?/?$')
+ROUTE = re.compile(r'^/books/[^/]+(?:/listen|/chapters/\d+(?:/(?:play|read))?)?/?$')
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map,

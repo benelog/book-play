@@ -18,10 +18,14 @@
 
 - **서재(Library)** — 난이도별 책장(`js/library.js`의 `difficulty`: starter · beginner · intermediate) 위에 책 표지가 놓여 있습니다. 표지 그림은 `images/cover.jpg`가 있으면 그것을, 없으면 `chapter-01.jpg`를 씁니다. 책을 꺼내면 펼친 책(왼쪽 삽화, 오른쪽 본문) 화면으로 넘어가고, 화면 전환 때 오른쪽 페이지가 넘어가는 애니메이션이 있습니다.
 - **출처와 라이선스** — 책마다 제목 페이지 아래 "Sources & licences"에 원문과 삽화의 출처·라이선스를 표시합니다. 내용은 `js/library.js`의 `credits` 항목입니다.
-- **URL** — 경로 방식입니다: `/books/<id>` (책 제목 화면), `/books/<id>/chapters/<n>` (읽기), `/books/<id>/chapters/<n>/play` (대화 장면).
+- **URL** — 경로 방식입니다: `/books/<id>` (책 제목 화면), `/books/<id>/chapters/<n>` (읽기), `/books/<id>/chapters/<n>/play` (대화 장면), `/books/<id>/listen` (오디오북).
   `start.sh`의 서버(`tools/serve.py`)가 이 경로를 `index.html`로 연결합니다. 정적 호스팅에서는 `_redirects`(Cloudflare Pages·Netlify 형식)처럼 `/books/*`를 `index.html`로 보내는 규칙이 필요합니다.
   `index.html`을 file://로 직접 열면 같은 경로를 `#` 뒤에 붙입니다: `index.html#/books/<id>/chapters/3`.
 - **원문 읽기(Read)** — 장별 영어 원문과 TTS(브라우저 내장 음성 합성). 문장 단위로 강조됩니다. Gutenberg 텍스트의 `_밑줄_` 이탤릭 표기는 기울임체로 표시하고 음성에서는 뺍니다. 본문의 `[Picture 01-1: 설명]` 문단은 `images/pictures/01-1.jpg` 그림으로 표시합니다(파일이 없으면 생략).
+- **오디오북(Listen)** — 제목 페이지의 "🎧 Listen to the whole book"(읽기 화면에서는 "🎧 Audiobook", 그 장부터). 제목부터 마지막 줄까지 책 전체를 이어서 읽어 줍니다.
+  미리 녹음한 줄은 MP3(`books/<id>/audio/<key>.mp3`, 어린 왕자는 영화의 `film/audio/`)로, 나머지는 브라우저 음성으로 읽습니다. 속도는 0.6×~2×(`lp.v1.settings`의 `listenRate`), 듣던 위치는 `lp.v1.<id>.listen`에 저장됩니다.
+  **화면을 꺼도 책 끝까지 재생됩니다.** `<audio>` 하나가 녹음과, 브라우저 음성이 말하는 동안·줄 사이의 들리지 않는 20Hz 음을 이어서 재생해 휴대폰이 페이지를 미디어 재생 중으로 유지하고, 잠금 화면·이어폰 버튼(Media Session: 재생/정지, 이전·다음 장, 앞뒤 줄)으로 조작합니다.
+  다만 브라우저 음성은 화면이 꺼지면 멈추는 기기가 있어(iPhone Safari 등) 녹음된 책이 확실합니다. 녹음은 `tools/book-voices.py`(skill `book-voices`)로 만듭니다. 대본은 `js/narration.js`, 재생은 `js/listen.js`.
 - **단어 사전** — 본문의 단어를 클릭하면 팝오버에 영어 뜻(English Wiktionary), 한국어 뜻(한국어 위키낱말사전이 있으면 그것, 없으면 MyMemory 기계 번역), 발음(Free Dictionary API 녹음 또는 TTS)이 나옵니다. 팝오버의 "▶ Read from here"로 그 문장부터 읽기를 시작할 수 있고, Naver·Daum 사전 링크도 있습니다.
   `cyclones`·`carried`처럼 활용형은 원형을 찾아 함께 보여 줍니다. 찾은 결과는 localStorage(`lp.v1.dict`)에 캐시되어 오프라인에서도 다시 볼 수 있습니다. 코드는 `js/dict.js`.
   `readOnly: true`인 책은 Play 탭이 없고, 읽기 화면의 "Finished" 버튼으로 장을 완료합니다.
@@ -38,7 +42,7 @@
   책 제목 페이지의 "Save for offline"은 그 책의 `scenes.js`·본문·장별 삽화를 한 번에 저장합니다. 새 버전을 배포하면 "A new version of Book Play is ready" 토스트가 뜨고 Reload로 갱신합니다. `file://`에서는 서비스 워커가 없으므로 이 기능만 빠지고 나머지는 그대로 동작합니다.
 
 - **어린 왕자 영화(Film)** `books/little-prince/film/index.html` — 어린 왕자 제목 페이지의 "▶ Watch the whole book as a film". 헌사부터 27장 끝까지 번역문 전체를 자막으로 보여 주고 미리 녹음한 음성으로 읽습니다.
-  화자(조종사)의 서술과 등장인물의 대사를 나눠, 인물마다 한 가지 목소리와 자막 색을 씁니다. 녹음은 OpenAI `gpt-4o-mini-tts`로 만든 `film/audio/<key>.mp3`이고(`tools/film-voices.py`), 녹음이 없는 줄은 브라우저 음성(음색·높낮이로 인물 구분)으로 읽습니다. 장 삽화와 본문 속 그림(`images/pictures/`)이 별이 뜬 공간에 판처럼 떠 있고, 카메라가 판 사이를 날아가며 말하는 인물 쪽으로 다가갑니다.
+  화자(조종사)의 서술과 등장인물의 대사를 나눠, 인물마다 한 가지 목소리와 자막 색을 씁니다. 녹음은 OpenAI `gpt-4o-mini-tts`로 만든 `film/audio/<key>.mp3`이고(`tools/book-voices.py little-prince`, 오디오북도 같은 녹음을 씀), 녹음이 없는 줄은 브라우저 음성(음색·높낮이로 인물 구분)으로 읽습니다. 장 삽화와 본문 속 그림(`images/pictures/`)이 별이 뜬 공간에 판처럼 떠 있고, 카메라가 판 사이를 날아가며 말하는 인물 쪽으로 다가갑니다.
   CSS 3D로 만들었습니다. `file://`에서는 WebGL이 로컬 이미지를 텍스처로 쓸 수 없기 때문입니다.
   자막은 지금 읽는 단어를 밝혀 줍니다(`film/timing.js`의 단어 시각, 브라우저 음성은 단어 경계). 층을 나눈 그림(98장)은 하늘이 땅·인물보다 덜 움직여 깊이가 생기고, 인물이 눈을 깜빡이며 말하는 인물의 입이 녹음 음량에 맞춰 열립니다. 혼자 선 인물은 숨을 쉬고 목도리 끝이 흔들리며, 밤하늘의 별이 반짝입니다(`film/motion.js`). `?motion=0`이면 전처럼 정지 그림, 동작 줄이기 설정이면 단어 강조만 남습니다.
   녹음도 브라우저 음성도 없으면 자막만으로 진행합니다. 스페이스 재생/정지, ← → 문장, [ ] 장, f 전체 화면. 이어 보기 위치는 `lp.v1.little-prince.film`에 저장합니다.
@@ -58,8 +62,8 @@ _redirects            정적 호스팅용 경로 재작성 규칙
 tools/serve.py        경로 방식 URL을 지원하는 로컬 서버
 tools/embed-text.py   text/*.txt → text/book.js 변환 (start.sh가 자동 실행)
 tools/test.js         node tools/test.js — 파서·판정·모든 책의 장면 데이터·어린 왕자 영화 대본 검사
-tools/film-quotes.js  node tools/film-quotes.js [from] [to] — 어린 왕자 인용문과 cast.js의 화자를 나란히 출력
-tools/film-voices.py  어린 왕자 영화 대사 녹음 (OpenAI TTS, 녹음이 없는 줄만; audio.js를 다시 씀)
+tools/book-quotes.js  node tools/book-quotes.js <id> [from] [to] — 책의 인용문과 cast.js의 화자를 나란히 출력
+tools/book-voices.py  책 녹음: 오디오북·어린 왕자 영화의 줄마다 OpenAI TTS (녹음이 없는 줄만; <audio>.js 목록을 다시 씀)
 tools/film-timing.py  녹음마다 입 모양 곡선(50ms)과 단어 시각(faster-whisper) → film/timing.js (없는 것만)
 tools/film-layers.py  그림을 먼 층·땅 층으로 나누고 얼굴 조각을 만듦 (Codex 편집 + rembg) → images/layers/, film/layers.js
 tools/film-motion-check.py  headless Chrome으로 층·얼굴을 원본과 대조한 contact sheet

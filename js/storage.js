@@ -50,7 +50,11 @@ window.LP_STORAGE = (function () {
     getBookInfo(id) { return Object.assign({ source: null, credit: '', creditAuto: true, parserVersion: 0, freeMove: false }, read(k('book', id), {})); },
     setBookInfo(info) { return write(k('book'), info); },
 
-    getSettings() { return Object.assign({ voice: null, rate: 0.95, autoRead: false, answerMode: 'type', koHelp: false }, read(KEY_SETTINGS, {})); },
+    // audiobook position: { i: step index, ch: its chapter } (the chapter decides when the text has changed since)
+    getListen(id) { const l = read(k('listen', id), null); return l && typeof l === 'object' ? l : null; },
+    setListen(l) { return write(k('listen'), l); },
+
+    getSettings() { return Object.assign({ voice: null, rate: 0.95, listenRate: 1, autoRead: false, answerMode: 'type', koHelp: false }, read(KEY_SETTINGS, {})); },
     setSettings(s) { return write(KEY_SETTINGS, s); },
 
     // Study history (all books). Event: { t: ISO time, type: 'open' | 'listen' | 'done' | 'word', book, chapter, title?, mode?, word?, ko? }

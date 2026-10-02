@@ -234,7 +234,7 @@
   // ---------------------------------------------------------------- playback
   let cur = 0, playing = false, token = 0, timer = null, watchdog = null;
   const speed = () => +$('speed').value;
-  // Recorded voices (audio/<key>.mp3, listed in audio.js by tools/film-voices.py) are played when present; any other
+  // Recorded voices (audio/<key>.mp3, listed in audio.js by tools/book-voices.py) are played when present; any other
   // line falls back to the browser's speech. <audio> is not fetch(), so this also works from file://.
   const AUDIO = window.LP_FILM_AUDIO || {};
   const RECORDED = new Set(typeof AUDIO === 'string' ? AUDIO.split(/\s+/).filter(Boolean) : Object.keys(AUDIO));

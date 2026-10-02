@@ -7,16 +7,16 @@
      404.html redirect dance on GitHub Pages once the worker is installed.
    - Cross-origin requests (the dictionary APIs) are left alone; js/dict.js keeps its own cache in localStorage.
    Bump VERSION whenever a shell file changes so the new shell is precached and the "new version" toast appears. */
-const VERSION = 'v17';
+const VERSION = 'v18';
 const SHELL = `bookplay-shell-${VERSION}`;
 const BOOKS = 'bookplay-books';
 const ROOT = new URL('./', self.location).pathname;          // '/' locally, '/book-play/' on GitHub Pages
 const INDEX = ROOT + 'index.html';
 const SHELL_FILES = ['', 'index.html', '404.html', 'css/style.css', 'js/storage.js', 'js/parser.js', 'js/matcher.js', 'js/tts.js',
-  'js/dict.js', 'js/pwa.js', 'js/library.js', 'js/app.js', 'manifest.webmanifest',
+  'js/narration.js', 'js/listen.js', 'js/dict.js', 'js/pwa.js', 'js/library.js', 'js/app.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']
   .map(p => ROOT + p);
-const ROUTE = /\/books\/[^/]+(?:\/chapters\/\d+(?:\/(?:play|read))?)?\/?$/;
+const ROUTE = /\/books\/[^/]+(?:\/listen|\/chapters\/\d+(?:\/(?:play|read))?)?\/?$/;
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then(cache => Promise.all(SHELL_FILES.map(url => cache.add(url).catch(err => console.warn('precache skipped', url, err))))));
@@ -60,7 +60,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (path.startsWith(ROOT + 'books/')) {
-    // images and the film's recorded voices (named by a hash of the line, so never changed in place) come from the cache first
+    // images and the recorded voices of the audiobook and the film (named by a hash of the line, so never changed in place) come from the cache first
     e.respondWith(/\.(jpe?g|png|webp|gif|svg|mp3)$/i.test(path) ? cacheFirst(req, BOOKS) : networkFirst(req, BOOKS));
     return;
   }
