@@ -58,7 +58,8 @@ Book Play — 삽화가 있는 영어 책으로 영어를 배우는 정적 웹 �
 - 달리면서 **화면을 끈 채 책 끝까지** 듣는 것이 목적입니다(사용자 요구). 그래서 재생은 `js/listen.js`의 `<audio>` 하나로 이어 가고, 브라우저 음성이 말하는 동안과 줄 사이에도 들리지 않는 20Hz 음을 재생해 페이지를 "미디어 재생 중"으로 유지합니다. 이 구조를 깨지 마세요(요소를 줄마다 새로 만들거나, 줄 사이에 재생을 멈추면 잠금 상태에서 끊깁니다).
 - 대본은 `js/narration.js`의 `forBook()` 하나로 앱·어린 왕자 영화·녹음 도구가 함께 씁니다. 어린 왕자 오디오북은 영화의 녹음(`film/audio/`)을 그대로 쓰도록 `library.js`의 `listen` 설정이 영화와 같은 대본을 만듭니다(`node tools/test.js`가 확인).
   `chunks()`·`spoken()`을 바꾸면 녹음 키가 바뀝니다. 바꾼 뒤 `python3 tools/book-voices.py little-prince --dry-run`이 `0 to record`인지 보세요. 브라우저 음성용으로 긴 줄을 자르는 일은 `listen.js`에서 합니다.
-- 녹음은 `.claude/skills/book-voices/` skill의 절차대로 `tools/book-voices.py <id>`로 만듭니다. 2026-10-02 현재 녹음된 책은 어린 왕자와 The Red Raincoat(도구 시험용)입니다.
+- 녹음은 `.claude/skills/book-voices/` skill의 절차대로 `tools/book-voices.py <id>`로 만듭니다. 엔진(OpenAI 유료 / 로컬 Kokoro 무료)과 목소리는 skill 안에서 `AskUserQuestion`으로 사용자에게 묻습니다(사용자 요청).
+  2026-10-02 비교에서 사용자는 Kokoro `am_michael`이 괜찮다고 했습니다. 이 날 현재 녹음된 책은 어린 왕자와 The Red Raincoat(OpenAI `ash`, 도구 시험용)입니다.
 
 ## 저작권 규칙
 

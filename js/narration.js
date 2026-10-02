@@ -144,7 +144,8 @@ window.LP_NARRATION = (function () {
   const audioDir = (book) => (book.listen && book.listen.audio) || 'audio';
   const castFile = (book) => (book.listen && book.listen.cast) || 'cast.js';
 
-  // Without a cast.js the narrator alone reads the book in this voice (tools/book-voices.py records it).
+  // Without a cast.js the narrator alone reads the book in this voice (tools/book-voices.py records it). A tts with
+  // engine: 'kokoro' is recorded on this computer by Kokoro-82M instead of OpenAI (its voice names look like am_michael).
   const DEFAULT_CAST = { characters: { narrator: { name: 'Narrator', ko: '낭독자', color: '#e9dcc0', voice: 'male', pitch: 1, rate: 1,
     tts: { voice: 'ash', shift: 0, how: 'A warm, clear storyteller reading a classic book aloud to learners of English: natural pace, gentle expression, every word distinct; characters\' lines lightly acted, never exaggerated.' } } } };
   const castOf = (cast) => (cast && cast.characters && cast.characters.narrator ? cast : DEFAULT_CAST);

@@ -63,7 +63,8 @@ tools/serve.py        경로 방식 URL을 지원하는 로컬 서버
 tools/embed-text.py   text/*.txt → text/book.js 변환 (start.sh가 자동 실행)
 tools/test.js         node tools/test.js — 파서·판정·모든 책의 장면 데이터·어린 왕자 영화 대본 검사
 tools/book-quotes.js  node tools/book-quotes.js <id> [from] [to] — 책의 인용문과 cast.js의 화자를 나란히 출력
-tools/book-voices.py  책 녹음: 오디오북·어린 왕자 영화의 줄마다 OpenAI TTS (녹음이 없는 줄만; <audio>.js 목록을 다시 씀)
+tools/book-voices.py  책 녹음: 오디오북·어린 왕자 영화의 줄마다 OpenAI TTS 또는 로컬 Kokoro (녹음이 없는 줄만; <audio>.js 목록을 다시 씀; --sample 목소리 샘플)
+tools/kokoro-tts.py   book-voices.py가 uv로 돌리는 로컬 Kokoro-82M 음성 생성기
 tools/film-timing.py  녹음마다 입 모양 곡선(50ms)과 단어 시각(faster-whisper) → film/timing.js (없는 것만)
 tools/film-layers.py  그림을 먼 층·땅 층으로 나누고 얼굴 조각을 만듦 (Codex 편집 + rembg) → images/layers/, film/layers.js
 tools/film-motion-check.py  headless Chrome으로 층·얼굴을 원본과 대조한 contact sheet
