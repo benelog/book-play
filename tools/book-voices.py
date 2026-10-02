@@ -19,7 +19,7 @@ Run:   OPENAI_PAT=sk-... python3 -u tools/book-voices.py <book id> [--chapter N]
        (OPENAI_API_KEY works too; the key is never printed. LP_TTS_RPM=6.5 to go slowly when the daily limit is near)
 Needs: node, ffmpeg (with the rubberband filter when a voice has `shift`); uv for Kokoro (the model is cached by Hugging Face).
 """
-import concurrent.futures as cf, json, os, re, subprocess, sys, tempfile, threading, time, urllib.error, urllib.request
+import concurrent.futures as cf, json, os, subprocess, sys, tempfile, threading, time, urllib.error, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RPM = float(os.environ.get('LP_TTS_RPM', 400))   # stay under the account's limit (Tier 1: 500 a minute, 10,000 a day)
@@ -28,20 +28,11 @@ WORKERS = 8
 def book(book_id):
     """The book's spoken steps and where its recordings go, from the app's own code (node)."""
     js = r"""
-      global.window = {};
-      const fs = require('fs'), id = process.argv[1];
-      for (const f of ['js/parser.js', 'js/library.js', 'js/narration.js']) require('./' + f);
-      const P = window.LP_PARSER, N = window.LP_NARRATION;
-      const b = window.LP_LIBRARY.find(x => x.id === id);
-      if (!b) { console.error('no book ' + id + ' in js/library.js'); process.exit(2); }
-      const dir = 'books/' + id + '/';
-      if (!fs.existsSync(dir + 'text/book.js')) { console.error(dir + 'text/book.js is missing (run tools/embed-text.py)'); process.exit(2); }
-      require('./' + dir + 'text/book.js');
-      if (fs.existsSync(dir + 'scenes.js')) require('./' + dir + 'scenes.js');
-      const castPath = dir + N.castFile(b);
-      if (fs.existsSync(castPath)) require('./' + castPath);
-      const cast = window.LP_CAST || window.LP_FILM_CAST || null;
-      const tl = N.forBook(b, P.parse(window.LP_BOOK.text), window.LP_SCENES || [], cast, P.picture);
+      let B;
+      try { B = require('./tools/load-book.js')(process.argv[1]); } catch (e) { console.error(e.message); process.exit(2); }
+      const N = window.LP_NARRATION, b = B.book, cast = B.cast;
+      if (!B.parsed) { console.error('books/' + b.id + '/text/book.js is missing (run tools/embed-text.py)'); process.exit(2); }
+      const tl = B.timeline();
       const out = [], seen = new Set();
       for (const s of tl.steps) {
         if (!s.say) continue;
@@ -50,7 +41,7 @@ def book(book_id):
         seen.add(key);
         out.push({ key, who: s.who || 'narrator', ch: s.ch, para: s.para, say: s.say, tts: N.character(cast, s.who).tts });
       }
-      console.log(JSON.stringify({ title: b.title, author: b.author || '', audio: dir + N.audioDir(b), cast: fs.existsSync(castPath) ? castPath : null,
+      console.log(JSON.stringify({ title: b.title, author: b.author || '', audio: B.audioPath, cast: B.castPath,
                                    narrator: N.character(cast, 'narrator').tts, errors: tl.errors, steps: out }));
     """
     r = subprocess.run(['node', '-e', js, book_id], cwd=ROOT, capture_output=True, text=True)
@@ -145,14 +136,11 @@ def duration_ms(path):
     return int(round(float(out) * 1000))
 
 def write_index(items, audio_dir):
-    """<audio>.js: { key: length in ms } for every recording that exists. An existing list keeps its variable name
-    (The Little Prince's film/audio.js is LP_FILM_AUDIO); a new one is LP_AUDIO."""
-    index = audio_dir + '.js'
-    known, name = {}, 'LP_AUDIO'
+    """<audio>.js: window.LP_AUDIO = { key: length in ms } for every recording that exists."""
+    index, name = audio_dir + '.js', 'LP_AUDIO'
+    known = {}
     try:
         txt = open(index).read()
-        m = re.search(r'window\.(\w+) =', txt)
-        if m: name = m.group(1)
         old = json.loads(txt[txt.index(name + ' =') + len(name) + 2:].strip().rstrip(';'))
         if isinstance(old, dict): known = old
     except (OSError, ValueError): pass

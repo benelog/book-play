@@ -1,12 +1,13 @@
 /* The Little Prince film — a narrated picture film in CSS 3D.
-   The whole book text (text/book.js) is turned into a list of steps by script.js + cast.js: chapter cards, pictures
-   and every sentence of narration and dialogue. Each illustration is a painted board floating in a star field; the
+   The whole book text (text/book.js) is turned into a list of steps by js/narration.js + cast.js (the same steps the
+   audiobook plays, so both use the recordings in film/audio/): chapter cards, pictures and every sentence of narration
+   and dialogue. Each illustration is a painted board floating in a star field; the
    camera flies from board to board, and while a character speaks it moves toward that character's head (shots.js).
    Lines are spoken with the Web Speech API, one voice per character; without speech the film runs on timings.
    Plain CSS 3D (no WebGL) so the page also works when opened from file://.
    motion.js adds depth layers, blinking, speaking mouths and the spoken word lit in the subtitle (see its header). */
 (function () {
-  const P = window.LP_PARSER, S = window.LP_FILM_SCRIPT, CAST = window.LP_FILM_CAST, SHOTS = window.LP_FILM_SHOTS || {};
+  const P = window.LP_PARSER, N = window.LP_NARRATION, CAST = window.LP_CAST, SHOTS = window.LP_FILM_SHOTS || {};
   const SCENES = window.LP_SCENES || [];
   const M = window.LP_FILM_MOTION || null;   // motion.js: layers, faces, subtitle words
   const KEY = 'lp.v1.little-prince.film';
@@ -25,7 +26,9 @@
 
   // ---------------------------------------------------------------- timeline
   const parsed = P.parse(window.LP_BOOK.text);
-  const TL = S.timeline(parsed, CAST.speakers, P.picture, SCENES);
+  // js/library.js `listen` shapes the title and the chapter cards: title page and dedication from the text, "Chapter One."
+  const BOOK = window.LP_LIBRARY.find(b => b.id === 'little-prince');
+  const TL = N.forBook(BOOK, parsed, SCENES, CAST, P.picture);
   if (TL.errors.length) console.warn('[film] cast.js does not match the text:', TL.errors);
   const steps = TL.steps, chapterStart = TL.chapterStart;
 
@@ -236,15 +239,10 @@
   const speed = () => +$('speed').value;
   // Recorded voices (audio/<key>.mp3, listed in audio.js by tools/book-voices.py) are played when present; any other
   // line falls back to the browser's speech. <audio> is not fetch(), so this also works from file://.
-  const AUDIO = window.LP_FILM_AUDIO || {};
-  const RECORDED = new Set(typeof AUDIO === 'string' ? AUDIO.split(/\s+/).filter(Boolean) : Object.keys(AUDIO));
-  const keyOf = (step) => {
-    const who = step.who || 'narrator', c = CAST.characters[who] || CAST.characters.narrator;
-    return S.audioKey(who, step.say, c.tts);
-  };
+  const RECORDED = new Set(Object.keys(window.LP_AUDIO || {}));
   const clipOf = (step) => {
     if (!step || !step.say || !RECORDED.size) return null;
-    const key = keyOf(step);
+    const key = N.keyOf(step, CAST);
     return RECORDED.has(key) ? `audio/${key}.mp3` : null;
   };
   let clip = null, nextClip = null;

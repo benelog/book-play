@@ -1,5 +1,5 @@
 /* Narration script — turns a book's text into a list of spoken steps, shared by the audiobook (js/listen.js), the
-   Little Prince film (books/little-prince/film/script.js) and the recording tool (tools/book-voices.py). No DOM here,
+   Little Prince film (books/little-prince/film/film.js) and the recording tool (tools/book-voices.py). No DOM here,
    so node can load it too.
    Every paragraph is kept. Without a cast the narrator reads everything; with one (books/<id>/cast.js, or film/cast.js
    for The Little Prince) each "double-quoted" span is spoken by the speaker listed for it, in order, and a quote listed

@@ -76,13 +76,11 @@ window.LP_PWA = (function () {
     } catch (e) { /* no text */ }
     // a book with a film (books/<id>/film/) keeps it too; the film page's own URL is its folder
     if (await put(`${dir}/film/film.js`)) {
-      for (const f of ['', 'index.html', 'film.css', 'script.js', 'cast.js', 'shots.js', 'audio.js', 'timing.js', 'layers.js', 'motion.js']) await put(`${dir}/film/${f}`);
-      // the recorded voices (film/audio.js lists audio/<key>.mp3: { "<key>": ms, … }, or a string of keys in older versions)
+      for (const f of ['', 'index.html', 'film.css', 'cast.js', 'shots.js', 'audio.js', 'timing.js', 'layers.js', 'motion.js']) await put(`${dir}/film/${f}`);
+      // the recorded voices (film/audio.js lists audio/<key>.mp3: { "<key>": ms, … })
       try {
         const r = await cache.match(`${dir}/film/audio.js`);
-        const t = r ? await r.text() : '';
-        const old = t.match(/LP_FILM_AUDIO = "([^"]*)"/);
-        const keys = old ? old[1].split(' ').filter(Boolean) : [...t.matchAll(/"([0-9a-f]{8})":/g)].map(m => m[1]);
+        const keys = r ? [...(await r.text()).matchAll(/"([0-9a-f]{8})":/g)].map(m => m[1]) : [];
         for (const k of keys) await put(`${dir}/film/audio/${k}.mp3`);
       } catch (e) { /* no recorded voices */ }
       // the moving pictures' layers and faces (film/layers.js lists them by picture: images/layers/<picture>/<file>)

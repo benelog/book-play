@@ -645,11 +645,11 @@
     if (listenData) return listenData;
     await loadScript(`${DIR}/${N.audioDir(BOOK)}.js`);   // { key: ms } of the recordings that exist
     await loadScript(`${DIR}/${N.castFile(BOOK)}`);
-    const recorded = window.LP_AUDIO || window.LP_FILM_AUDIO || {};
-    const cast = window.LP_CAST || window.LP_FILM_CAST || null;
+    const recorded = window.LP_AUDIO || {};
+    const cast = window.LP_CAST || null;
     const parsed = window.LP_BOOK && window.LP_BOOK.text ? P.parse(window.LP_BOOK.text) : { chapters: chapters || [], front: info.front || [] };
     const steps = N.forBook(BOOK, parsed, SCENES, cast, P.picture).steps.filter(s => s.say);
-    steps.forEach(s => { s.key = N.keyOf(s, cast); s.ms = typeof recorded === 'object' ? recorded[s.key] || 0 : 0; });
+    steps.forEach(s => { s.key = N.keyOf(s, cast); s.ms = recorded[s.key] || 0; });
     const starts = {};
     steps.forEach((s, k) => { if (!(s.ch in starts)) starts[s.ch] = k; });
     listenData = { steps, starts, cast, recorded: steps.filter(s => s.ms).length };

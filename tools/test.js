@@ -140,64 +140,75 @@ ok(Array.isArray(S.getHistory()) && S.getHistory().length === 0, 'corrupt histor
 for (let i = 0; i < 305; i++) S.setDictEntry('w' + i, { found: true, meanings: [] });
 ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldest');
 
-// The Little Prince film: every quote has a known speaker, and the script keeps every word of the text
+// The audiobook (js/narration.js forBook): every book reads every word of its text, its cast (if any) names a speaker
+// for every quote, and every recording its list names exists; how many steps are recorded is only reported
+const loadBook = require('./load-book.js');
 {
-  const film = path.join(booksDir, 'little-prince', 'film');
-  require(path.join(film, 'script.js')); require(path.join(film, 'cast.js')); require(path.join(film, 'shots.js'));
-  const F = window.LP_FILM_SCRIPT, CAST = window.LP_FILM_CAST, SHOTS = window.LP_FILM_SHOTS;
-  const bk = {}; new Function('window', fs.readFileSync(path.join(booksDir, 'little-prince', 'text', 'book.js'), 'utf8'))(bk);
-  const parsed = P.parse(bk.LP_BOOK.text);
-  const built = F.build(parsed.chapters, CAST.speakers, P.picture);
-  ok(built.errors.length === 0, 'film: ' + built.errors.join('; '));
+  const N = window.LP_NARRATION;
   const letters = (t) => t.replace(/[^A-Za-z0-9]/g, '');
-  built.chapters.forEach(c => c.beats.forEach(b => {
-    if (b.picture) { ok(SHOTS[b.picture], `film: no shot data for picture ${b.picture}`); return; }
-    ok(letters(b.lines.map(l => l.parts.map(p => p.text).join('')).join('')) === letters(b.text), `film: ch${c.num} ¶${b.para} loses text`);
-    b.lines.forEach(l => ok(CAST.characters[l.who], `film: ch${c.num} unknown speaker ${l.who}`));
-  }));
-  for (let n = 1; n <= 27; n++) ok(SHOTS['chapter-' + String(n).padStart(2, '0')], `film: no shot data for chapter ${n}`);
-  // every picture in the text has its image file (the reading screen drops a missing one silently)
-  built.chapters.forEach(c => c.beats.forEach(b => {
-    if (b.picture) ok(fs.existsSync(path.join(booksDir, 'little-prince', 'images', 'pictures', b.picture + '.jpg')), `picture ${b.picture}: images/pictures/${b.picture}.jpg missing`);
-  }));
-  // recorded voices: every file audio.js lists exists; how many spoken steps have one is only reported
-  // (a line without a recording falls back to the browser's speech — see tools/book-voices.py)
-  const audioJs = path.join(film, 'audio.js');
-  if (fs.existsSync(audioJs)) {
-    delete window.LP_FILM_AUDIO; require(audioJs);
-    const A = window.LP_FILM_AUDIO || {};
-    const listed = new Set(typeof A === 'string' ? A.split(' ').filter(Boolean) : Object.keys(A));
-    listed.forEach(k => ok(fs.existsSync(path.join(film, 'audio', k + '.mp3')), `film: audio.js lists ${k} but audio/${k}.mp3 is missing`));
-    delete window.LP_SCENES; require(path.join(booksDir, 'little-prince', 'scenes.js'));
-    const keys = new Set(F.timeline(parsed, CAST.speakers, P.picture, window.LP_SCENES || []).steps.filter(s => s.say).map(s => {
-      const who = s.who || 'narrator';
-      return F.audioKey(who, s.say, (CAST.characters[who] || CAST.characters.narrator).tts);
-    }));
-    const have = [...keys].filter(k => listed.has(k)).length, stale = [...listed].filter(k => !keys.has(k)).length;
-    console.log(`film voices: ${have}/${keys.size} spoken steps recorded` + (stale ? `, ${stale} unused (tools/book-voices.py little-prince --prune)` : ''));
-    // mouth shapes and word times (tools/film-timing.py): only for recordings that exist, one time pair per subtitle word
-    const timingJs = path.join(film, 'timing.js');
-    if (fs.existsSync(timingJs)) {
-      delete window.LP_FILM_TIMING; require(timingJs);
-      const T = window.LP_FILM_TIMING || {};
-      Object.keys(T).forEach(k => {
-        ok(listed.has(k), `film: timing.js has ${k}, which audio.js does not list`);
-        ok(/^[0-9]*$/.test(T[k].mouth) && Array.isArray(T[k].words), `film: timing.js ${k} is malformed`);
-      });
-      const WORD = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu;
-      F.timeline(parsed, CAST.speakers, P.picture, window.LP_SCENES || []).steps.filter(s => s.kind === 'line').forEach(s => {
-        const t = T[F.audioKey(s.who, s.say, (CAST.characters[s.who] || CAST.characters.narrator).tts)];
-        if (t && t.words.length) ok(t.words.length === (s.text.match(WORD) || []).length, `film: timing.js word count differs for "${s.text.slice(0, 40)}"`);
-      });
-      const timed = [...keys].filter(k => T[k]).length;
-      console.log(`film timing: ${timed}/${keys.size} recordings timed, ${Object.values(T).filter(v => !v.words.length).length} without word times`);
+  ok(N.spoken('“Hello,” said _Alice_ =loudly= —[*] well...') === 'Hello, said Alice loudly, well…', 'narration: spoken() strips marks: ' + N.spoken('“Hello,” said _Alice_ =loudly= —[*] well...'));
+  ok(N.spans('He said “one” and "two".').filter(x => x.q).length === 2, 'narration: curly and straight quotes');
+  ok(N.numberWord(21) === 'Twenty-one' && N.numberWord(12) === 'Twelve', 'narration: number words');
+  const report = [];
+  for (const b of LIB) {
+    const B = loadBook(b.id), { parsed, cast } = B;
+    if (!parsed) continue;
+    const tl = B.timeline();
+    ok(tl.errors.length === 0, `${b.id} audiobook cast: ` + tl.errors.join('; '));
+    const spokenSteps = tl.steps.filter(s => s.say);
+    ok(spokenSteps.length > parsed.chapters.length, `${b.id}: audiobook has no lines`);
+    spokenSteps.forEach(s => ok(/[A-Za-z0-9]/.test(s.say) && s.say.length <= 1500, `${b.id}: odd audiobook line "${s.say.slice(0, 60)}"`));
+    if (cast) spokenSteps.forEach(s => ok(cast.characters[s.who || 'narrator'], `${b.id}: unknown speaker ${s.who}`));
+    parsed.chapters.forEach(c => {
+      const heard = tl.steps.filter(s => s.kind === 'line' && s.ch === c.num).map(s => s.text).join('');
+      ok(letters(heard) === letters(c.paragraphs.filter(p => !P.picture(p)).join('')), `${b.id} ch${c.num}: the audiobook loses text`);
+    });
+    if (B.audio) {
+      const A = B.audio, rel = path.basename(B.audioPath);
+      Object.keys(A).forEach(k => ok(fs.existsSync(path.join(__dirname, '..', B.audioPath, k + '.mp3')), `${b.id}: ${rel}.js lists ${k} but the file is missing`));
+      const keys = new Set(spokenSteps.map(s => N.keyOf(s, cast)));
+      const stale = Object.keys(A).filter(k => !keys.has(k)).length;
+      report.push(`${b.id} ${[...keys].filter(k => A[k]).length}/${keys.size}` + (stale ? ` (${stale} unused: tools/book-voices.py ${b.id} --prune)` : ''));
     }
   }
-  // motion layers (tools/film-layers.py): known pictures, files present, boxes inside the picture
+  console.log('audiobook voices recorded: ' + (report.join(', ') || 'none'));
+}
+
+// The Little Prince film plays the audiobook's steps (above); here only what is the film's own: shots for every
+// picture, the picture files, mouth shapes and word times (tools/film-timing.py) and motion layers (tools/film-layers.py)
+{
+  const N = window.LP_NARRATION;
+  const B = loadBook('little-prince'), film = path.join(B.dir, 'film');
+  require(path.join(film, 'shots.js'));
+  const SHOTS = window.LP_FILM_SHOTS;
+  const steps = B.timeline().steps;
+  steps.filter(s => s.kind === 'picture').forEach(s => {
+    ok(SHOTS[s.img], `film: no shot data for picture ${s.img}`);
+    // the reading screen drops a missing picture silently
+    ok(fs.existsSync(path.join(B.dir, 'images', 'pictures', s.img + '.jpg')), `picture ${s.img}: images/pictures/${s.img}.jpg missing`);
+  });
+  for (let n = 1; n <= 27; n++) ok(SHOTS['chapter-' + String(n).padStart(2, '0')], `film: no shot data for chapter ${n}`);
+  const timingJs = path.join(film, 'timing.js');
+  if (B.audio && fs.existsSync(timingJs)) {
+    delete window.LP_FILM_TIMING; require(timingJs);
+    const T = window.LP_FILM_TIMING || {};
+    const keys = new Set(steps.filter(s => s.say).map(s => N.keyOf(s, B.cast)));
+    Object.keys(T).forEach(k => {
+      ok(k in B.audio, `film: timing.js has ${k}, which audio.js does not list`);
+      ok(/^[0-9]*$/.test(T[k].mouth) && Array.isArray(T[k].words), `film: timing.js ${k} is malformed`);
+    });
+    const WORD = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu;
+    steps.filter(s => s.kind === 'line').forEach(s => {
+      const t = T[N.keyOf(s, B.cast)];
+      if (t && t.words.length) ok(t.words.length === (s.text.match(WORD) || []).length, `film: timing.js word count differs for "${s.text.slice(0, 40)}"`);
+    });
+    const timed = [...keys].filter(k => T[k]).length;
+    console.log(`film timing: ${timed}/${keys.size} recordings timed, ${Object.values(T).filter(v => !v.words.length).length} without word times`);
+  }
   const layersJs = path.join(film, 'layers.js');
   if (fs.existsSync(layersJs)) {
     require(layersJs);
-    const LY = window.LP_FILM_LAYERS || {}, dir = path.join(booksDir, 'little-prince', 'images', 'layers');
+    const LY = window.LP_FILM_LAYERS || {}, dir = path.join(B.dir, 'images', 'layers');
     const inside = (b, lo, hi) => b.x >= lo && b.y >= lo && b.x + b.w <= hi && b.y + b.h <= hi && b.w > 0 && b.h > 0;
     Object.keys(LY).forEach(id => {
       ok(SHOTS[id], `film layers: ${id} is not a picture in shots.js`);
@@ -214,53 +225,6 @@ ok(!S.getDictEntry('w0') && S.getDictEntry('w304'), 'dict cache evicts the oldes
       });
     });
   }
-}
-
-// The audiobook (js/narration.js forBook): every book reads every word of its text, its cast (if any) names a speaker
-// for every quote, and every recording its list names exists; how many steps are recorded is only reported
-{
-  const N = window.LP_NARRATION;
-  const letters = (t) => t.replace(/[^A-Za-z0-9]/g, '');
-  ok(N.spoken('“Hello,” said _Alice_ =loudly= —[*] well...') === 'Hello, said Alice loudly, well…', 'narration: spoken() strips marks: ' + N.spoken('“Hello,” said _Alice_ =loudly= —[*] well...'));
-  ok(N.spans('He said “one” and "two".').filter(x => x.q).length === 2, 'narration: curly and straight quotes');
-  ok(N.numberWord(21) === 'Twenty-one' && N.numberWord(12) === 'Twelve', 'narration: number words');
-  const report = [];
-  for (const b of LIB) {
-    const dir = path.join(booksDir, b.id), textJs = path.join(dir, 'text', 'book.js');
-    if (!fs.existsSync(textJs)) continue;
-    const bk = {}; new Function('window', fs.readFileSync(textJs, 'utf8'))(bk);
-    const scenesJs = path.join(dir, 'scenes.js');
-    delete window.LP_SCENES; delete require.cache[require.resolve(scenesJs)]; require(scenesJs);
-    delete window.LP_CAST; delete window.LP_FILM_CAST;
-    const castJs = path.join(dir, N.castFile(b));
-    if (fs.existsSync(castJs)) { delete require.cache[require.resolve(castJs)]; require(castJs); }
-    const cast = window.LP_CAST || window.LP_FILM_CAST || null;
-    const parsed = P.parse(bk.LP_BOOK.text);
-    const tl = N.forBook(b, parsed, window.LP_SCENES, cast, P.picture);
-    ok(tl.errors.length === 0, `${b.id} audiobook cast: ` + tl.errors.join('; '));
-    const spokenSteps = tl.steps.filter(s => s.say);
-    ok(spokenSteps.length > parsed.chapters.length, `${b.id}: audiobook has no lines`);
-    spokenSteps.forEach(s => ok(/[A-Za-z0-9]/.test(s.say) && s.say.length <= 1500, `${b.id}: odd audiobook line "${s.say.slice(0, 60)}"`));
-    if (cast) spokenSteps.forEach(s => ok(cast.characters[s.who || 'narrator'], `${b.id}: unknown speaker ${s.who}`));
-    parsed.chapters.forEach(c => {
-      const heard = tl.steps.filter(s => s.kind === 'line' && s.ch === c.num).map(s => s.text).join('');
-      ok(letters(heard) === letters(c.paragraphs.filter(p => !P.picture(p)).join('')), `${b.id} ch${c.num}: the audiobook loses text`);
-    });
-    const listJs = path.join(dir, N.audioDir(b) + '.js');
-    if (fs.existsSync(listJs)) {
-      delete window.LP_AUDIO; delete window.LP_FILM_AUDIO; delete require.cache[require.resolve(listJs)]; require(listJs);
-      const A = window.LP_AUDIO || window.LP_FILM_AUDIO || {};
-      Object.keys(A).forEach(k => ok(fs.existsSync(path.join(dir, N.audioDir(b), k + '.mp3')), `${b.id}: ${N.audioDir(b)}.js lists ${k} but the file is missing`));
-      const keys = new Set(spokenSteps.map(s => N.keyOf(s, cast)));
-      report.push(`${b.id} ${[...keys].filter(k => A[k]).length}/${keys.size}`);
-    }
-    // The Little Prince's audiobook plays the film's own steps, so the film's recordings fit it exactly
-    if (b.id === 'little-prince') {
-      const F = window.LP_FILM_SCRIPT, film = F.timeline(parsed, cast.speakers, P.picture, window.LP_SCENES).steps.filter(s => s.say);
-      ok(film.length === spokenSteps.length && film.every((s, i) => N.keyOf(s, cast) === N.keyOf(spokenSteps[i], cast)), 'little-prince: audiobook and film steps differ');
-    }
-  }
-  console.log('audiobook voices recorded: ' + (report.join(', ') || 'none'));
 }
 
 console.log(fails ? `${fails} failure(s)` : 'all tests passed');

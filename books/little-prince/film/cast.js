@@ -1,12 +1,12 @@
 /* The Little Prince film — who speaks each quoted line, and how each character sounds.
    speakers[n] lists, in order, the speaker of every "double-quoted" span in chapter n of text/the-little-prince.txt
-   (film/script.js splits the text). Change the text and this list together: node tools/test.js checks the counts,
+   (js/narration.js splits the text). Change the text and this list together: node tools/test.js checks the counts,
    and node tools/book-quotes.js little-prince <from> <to> prints every quote next to its speaker.
    voice: 'male' | 'female' picks from the browser's English voices; pitch and rate tune it (Web Speech API), used when there
    is no recorded voice. tts: the recorded voice (tools/book-voices.py, OpenAI gpt-4o-mini-tts): voice name, shift in semitones
    applied afterwards (pitch and formants, to make an adult voice sound like a child), how = acting instructions.
    Changing tts or a line gives it a new file name (js/narration.js audioKey): run the tool again to record what is missing. */
-window.LP_FILM_CAST = {
+window.LP_CAST = {
   characters: {
     narrator:     { name: 'Narrator',        ko: '화자(조종사)',  color: '#e9dcc0', voice: 'male',   pitch: 0.95, rate: 1.0,
       tts: { voice: 'ash', shift: 0, how: 'The narrator: a grown man, the pilot, telling a cherished memory years later. Warm, calm, gently wistful storytelling, unhurried.' } },

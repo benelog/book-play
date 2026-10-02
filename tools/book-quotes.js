@@ -1,22 +1,18 @@
 /* node tools/book-quotes.js <book id> [from] [to] — list every quote of a book with its paragraph, numbered per chapter,
    next to the speaker its cast file gives it (SPEAKERS=draft.json overrides the cast per chapter). Used to write and check
    the speaker lists of a cast: books/<id>/cast.js, or books/little-prince/film/cast.js (js/library.js `listen.cast`). */
-const fs = require('fs'), path = require('path');
-global.window = {};
-const root = path.join(__dirname, '..');
-for (const f of ['js/parser.js', 'js/library.js', 'js/narration.js']) require(path.join(root, f));
+const fs = require('fs');
+const loadBook = require('./load-book.js');
 const P = window.LP_PARSER, N = window.LP_NARRATION;
-const id = process.argv[2], b = window.LP_LIBRARY.find(x => x.id === id);
-if (!b) { console.error('usage: node tools/book-quotes.js <book id> [from] [to]   (book ids: ' + window.LP_LIBRARY.map(x => x.id).join(', ') + ')'); process.exit(2); }
-const castFile = path.join(root, 'books', id, N.castFile(b));
-if (fs.existsSync(castFile)) require(castFile);
-const cast = window.LP_CAST || window.LP_FILM_CAST || {};
-const book = {}; new Function('window', fs.readFileSync(path.join(root, 'books', id, 'text', 'book.js'), 'utf8'))(book);
+let B;
+try { B = loadBook(process.argv[2]); } catch (e) { console.error('usage: node tools/book-quotes.js <book id> [from] [to]\n' + e.message); process.exit(2); }
+if (!B.parsed) { console.error(`books/${B.book.id}/text/book.js is missing (run tools/embed-text.py)`); process.exit(2); }
+const cast = B.cast || {};
 const speakers = Object.assign({}, cast.speakers || {},
   process.env.SPEAKERS ? JSON.parse(fs.readFileSync(process.env.SPEAKERS, 'utf8')) : {});   // a draft list to check
 const from = +process.argv[3] || 1, to = +process.argv[4] || 9999;
 const known = cast.characters || null;
-for (const c of P.parse(book.LP_BOOK.text).chapters) {
+for (const c of B.parsed.chapters) {
   if (c.num < from || c.num > to) continue;
   const list = String(speakers[c.num] || '').split(/\s+/).filter(Boolean);
   console.log(`\n=== CHAPTER ${c.num} (${c.paragraphs.reduce((n, p) => n + (P.picture(p) ? 0 : N.quoteCount(p)), 0)} quotes) ===`);

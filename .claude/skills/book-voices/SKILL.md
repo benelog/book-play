@@ -19,7 +19,7 @@ description: Record the audiobook voices of a Book Play book — with OpenAI TTS
   | | 기본 | 어린 왕자 |
   |---|---|---|
   | 녹음 | `books/<id>/audio/<key>.mp3` | `film/audio/` |
-  | 목록 | `books/<id>/audio.js` (`window.LP_AUDIO = { key: ms }`) | `film/audio.js` (`LP_FILM_AUDIO`) |
+  | 목록 | `books/<id>/audio.js` (`window.LP_AUDIO = { key: ms }`) | `film/audio.js` |
   | 목소리·화자 | `books/<id>/cast.js` | `film/cast.js` |
 - 엔진은 인물마다 `cast.js`의 `tts`로 정해집니다. `cast.js`가 없으면 `narration.js`의 `DEFAULT_CAST`(OpenAI `ash` 낭독자 하나)입니다.
   - OpenAI: `tts: { voice: 'ash', shift: 0, how: '연기 지시(영어)' }`
