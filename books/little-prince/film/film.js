@@ -15,8 +15,6 @@
   const stage = $('stage'), world = $('world');
   const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
-    'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII'];
   const pad = (n) => String(n).padStart(2, '0');
   const src = (id) => id === 'cover' ? '../images/cover.jpg' : /^chapter-/.test(id) ? `../images/${id}.jpg` : `../images/pictures/${id}.jpg`;
   const store = {
@@ -143,7 +141,7 @@
     const ko = $('ko-on').checked;
     if (step.kind === 'title') el.innerHTML = `<div class="name">${step.title}</div><div class="num" style="margin-top:18px">${step.by}</div><div class="ko" style="font-size:26px">${step.note}</div>`;
     else if (step.kind === 'end') el.innerHTML = `<div class="name">The End</div>`;
-    else el.innerHTML = `<div class="num">CHAPTER ${ROMAN[step.ch]}</div><div class="name">${step.title}</div>${ko && step.ko ? `<div class="ko">${step.ko}</div>` : ''}`;
+    else el.innerHTML = `<div class="num">CHAPTER ${N.roman(step.ch)}</div><div class="name">${step.title}</div>${ko && step.ko ? `<div class="ko">${step.ko}</div>` : ''}`;
     el.style.transform = `translate3d(${st.x}px, ${st.y - 120}px, ${st.z + 420}px)`;
     el.style.opacity = '0';
     world.appendChild(el);
@@ -206,8 +204,8 @@
   }
 
   // ---------------------------------------------------------------- voices
-  const synth = window.speechSynthesis;
-  const canSpeak = !!synth && 'SpeechSynthesisUtterance' in window;
+  // js/tts.js keeps the list of the browser's English voices; the film casts them and speaks on its own (word boundaries)
+  const T = window.LP_TTS, synth = window.speechSynthesis, canSpeak = T.supported;
   let voices = [];
   const FEMALE = /female|zira|aria|jenny|samantha|karen|moira|tessa|victoria|susan|hazel|libby|sonia|natasha|serena|kate|fiona|allison|ava|nicky|joanna|emma|olivia|salli|kimberly|ivy|google us english|catherine|linda|heather|michelle|sara|clara|shelley|flo|grandma|martha|nora/i;
   const MALE = /\bmale|david|mark|guy|daniel|alex|fred|tom|aaron|arthur|rishi|oliver|george|james|ryan|eric|brian|christopher|roger|steffan|lee|reed|ralph|junior|thomas|gordon|evan|nathan/i;
@@ -215,11 +213,8 @@
   const SLOT = { narrator: 0, pilot: 0, prince: 0, rose: 1, fox: 1, king: 2, vainman: 1, drinker: 3, businessman: 2, lamplighter: 1, geographer: 3,
     snake: 2, desertflower: 2, echo: 0, roses: 1, switchman: 3, merchant: 1, grownups: 2 };
   let casting = {};
-  function loadVoices() {
-    if (!canSpeak) return;
-    const all = synth.getVoices() || [];
-    voices = all.filter(v => /^en[-_]/i.test(v.lang) || /^en$/i.test(v.lang));
-    if (!voices.length) voices = all;
+  function loadVoices(list) {
+    voices = list;
     const female = voices.filter(v => FEMALE.test(v.name));
     const male = voices.filter(v => !FEMALE.test(v.name) && MALE.test(v.name));
     casting = {};
@@ -283,7 +278,7 @@
   }
   function playClip(step, url, done) {
     const my = token;
-    const c = CAST.characters[step.who || 'narrator'] || CAST.characters.narrator;
+    const c = N.character(CAST, step.who);
     const a = nextClip && nextClip.dataset.url === url ? nextClip : new Audio(url);
     if (a === nextClip) nextClip = null;
     clip = a;
@@ -306,7 +301,7 @@
   }
   function speakSynth(step, done) {
     const my = token;
-    const c = CAST.characters[step.who || 'narrator'] || CAST.characters.narrator;
+    const c = N.character(CAST, step.who);
     const v = casting[step.who || 'narrator'];
     const pieces = [];
     for (const m of step.say.match(/[^.!?…]+[.!?…]*["')]*\s*/g) || [step.say]) {
@@ -411,7 +406,7 @@
     const box = $('subtitle');
     if (step.kind !== 'line') { box.classList.add('hide'); return; }
     box.classList.remove('hide');
-    const c = CAST.characters[step.who] || CAST.characters.narrator;
+    const c = N.character(CAST, step.who);
     box.style.setProperty('--c', c.color);
     box.querySelector('.who').textContent = step.who === 'narrator' ? 'Narrator' : c.name;
     box.querySelector('.who').style.visibility = step.who === 'narrator' ? 'hidden' : 'visible';
@@ -422,15 +417,16 @@
   }
   function renderWhere(step) {
     const sc = SCENES.find(x => x.num === step.ch);
-    $('where').textContent = step.ch ? `Chapter ${ROMAN[step.ch]}${sc ? ' · ' + sc.title : ''}` : 'Dedication';
+    $('where').textContent = step.ch ? `Chapter ${N.roman(step.ch)}${sc ? ' · ' + sc.title : ''}` : 'Dedication';
     document.querySelectorAll('#chapter-list button').forEach(b => b.classList.toggle('current', +b.dataset.ch === step.ch));
   }
 
   // ---------------------------------------------------------------- UI
   function chapterOf(i) { return steps[i].ch; }
+  const LAST = Math.max(...Object.keys(chapterStart).map(Number));
   function jumpChapter(d) {
-    if (d > 0 && chapterOf(cur) >= 27) { show(steps.length - 1, true); return; }
-    const ch = Math.max(1, Math.min(27, (chapterOf(cur) || 0) + d));
+    if (d > 0 && chapterOf(cur) >= LAST) { show(steps.length - 1, true); return; }
+    const ch = Math.max(1, Math.min(LAST, (chapterOf(cur) || 0) + d));
     if (d < 0 && chapterStart[chapterOf(cur)] < cur - 1 && chapterOf(cur) > 0) show(chapterStart[chapterOf(cur)], true);
     else show(d < 0 && chapterOf(cur) <= 1 ? 0 : chapterStart[ch], true);
   }
@@ -456,7 +452,7 @@
   function buildMenu() {
     const ko = $('ko-on').checked;
     $('chapter-list').innerHTML = `<li><button data-ch="0" data-i="0"><span class="n">—</span>Title and dedication</button></li>` +
-      SCENES.map(sc => `<li><button data-ch="${sc.num}" data-i="${chapterStart[sc.num]}"><span class="n">${ROMAN[sc.num]}</span>${sc.title}${ko ? `<span class="k">${sc.ko}</span>` : ''}</button></li>`).join('');
+      SCENES.map(sc => `<li><button data-ch="${sc.num}" data-i="${chapterStart[sc.num]}"><span class="n">${N.roman(sc.num)}</span>${sc.title}${ko ? `<span class="k">${sc.ko}</span>` : ''}</button></li>`).join('');
     document.querySelectorAll('#chapter-list button').forEach(b => { b.onclick = () => { $('menu').hidden = true; show(+b.dataset.i, true); if (!playing) setPlaying(true); }; });
     renderWhere(steps[cur]);
   }
@@ -511,7 +507,7 @@
     const s = steps[savedIndex()];
     const sc = SCENES.find(x => x.num === s.ch);
     $('resume').hidden = false;
-    $('resume').textContent = `Continue · Chapter ${ROMAN[s.ch] || ''}${sc ? ' · ' + sc.title : ''}`;
+    $('resume').textContent = `Continue · Chapter ${N.roman(s.ch)}${sc ? ' · ' + sc.title : ''}`;
   }
   function start(i) {
     $('splash').hidden = true;
@@ -531,8 +527,8 @@
   buildMenu();
   renderCast();
   if (canSpeak) {
-    loadVoices();
-    if (synth.addEventListener) synth.addEventListener('voiceschanged', loadVoices); else synth.onvoiceschanged = loadVoices;
+    loadVoices(T.voices());
+    T.onVoices(loadVoices);
   } else $('voice-note').textContent = RECORDED.size ? recordedNote() : 'This browser cannot speak: the film runs with subtitles only.';
   show(savedIndex(), false);
   // start far out in space and glide in behind the splash

@@ -20,10 +20,7 @@
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad2 = (n) => String(n).padStart(2, '0');
-  function roman(n) {
-    const t = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
-    let s = ''; for (const [v, r] of t) while (n >= v) { s += r; n -= v; } return s;
-  }
+  const roman = N.roman;
   const meta = (n) => SCENES.find(c => c.num === n);
   const chapterText = (n) => chapters ? chapters.find(c => c.num === n) : null;
   const save = () => S.setProgress(progress);
@@ -53,18 +50,19 @@
   }
 
   // ---------- illustrations ----------
+  // the first of the urls that loads, else false (an Image, not fetch(), so it also works from file://)
+  function probe(urls, cb) {
+    let i = 0;
+    const next = () => {
+      if (i >= urls.length) return cb(false);
+      const url = urls[i++], img = new Image();
+      img.onload = () => cb(url); img.onerror = next; img.src = url;
+    };
+    next();
+  }
   function probeImage(n, cb) {
     if (n in imageCache) return cb(imageCache[n]);
-    let i = 0;
-    const tryNext = () => {
-      if (i >= IMG_EXT.length) { imageCache[n] = false; return cb(false); }
-      const url = `${DIR}/images/chapter-${pad2(n)}.${IMG_EXT[i++]}`;
-      const img = new Image();
-      img.onload = () => { imageCache[n] = url; cb(url); };
-      img.onerror = tryNext;
-      img.src = url;
-    };
-    tryNext();
+    probe(IMG_EXT.map(ext => `${DIR}/images/chapter-${pad2(n)}.${ext}`), url => { imageCache[n] = url; cb(url); });
   }
   function renderPicture(el, n, captionEl) {
     el.innerHTML = ART.chapter(n);
@@ -77,15 +75,7 @@
   }
   // cover for the shelf and the title page: images/cover.* → images/chapter-01.* → nothing
   function probeCover(dir, cb) {
-    const tries = ['cover.jpg', 'cover.png', 'cover.webp', 'chapter-01.jpg', 'chapter-01.jpeg', 'chapter-01.png', 'chapter-01.webp'];
-    let i = 0;
-    const next = () => {
-      if (i >= tries.length) return cb(false);
-      const url = `${dir}/images/${tries[i++]}`;
-      const img = new Image();
-      img.onload = () => cb(url); img.onerror = next; img.src = url;
-    };
-    next();
+    probe(['cover.jpg', 'cover.png', 'cover.webp', 'chapter-01.jpg', 'chapter-01.jpeg', 'chapter-01.png', 'chapter-01.webp'].map(f => `${dir}/images/${f}`), cb);
   }
   // the open book: left page (plate) + right page (content). Returns the right page element.
   function bookShell(leftHtml, rightHtml, opts = {}) {
@@ -183,6 +173,19 @@
       pr.addEventListener('animationend', done, { once: true });
       setTimeout(() => { if (turning) { pr.removeEventListener('animationend', done); turning = false; render(); } }, 600);
     } else render();
+  }
+  // the buttons at the top of a book page: whichever of them the page has
+  const NAV = '<button class="btn small" id="btn-select">Contents</button><button class="btn small" id="btn-home">Title</button><button class="btn small" id="btn-lib">Library</button>';
+  function wireNav() {
+    const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+    on('btn-select', () => go({ name: 'select' }));
+    on('btn-home', () => go({ name: 'title' }));
+    on('btn-lib', () => (location.href = libraryUrl()));
+  }
+  // a <select> of the browser's English voices, kept in the settings
+  function voicePicker(sel) {
+    T.onVoices(vs => { sel.innerHTML = vs.map(v => `<option value="${esc(v.name)}" ${v.name === settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('') || '<option>default</option>'; });
+    sel.onchange = () => { settings.voice = sel.value; saveSettings(); T.setVoice(settings.voice); };
   }
   function topbar(extra = '') {
     const name = BOOK ? `${esc(BOOK.title)} <small>${SITE}</small>` : `${SITE} <small>learn English with illustrated stories</small>`;
@@ -353,7 +356,7 @@
     if (!okScenes || !Array.isArray(window.LP_SCENES) || !window.LP_SCENES.length) {
       app.innerHTML = `${topbar('<button class="btn small" id="btn-lib">← Library</button>')}<div class="panel"><h3>Book data missing</h3>
         <p>${esc(DIR)}/scenes.js could not be loaded. See books/README.md for the format.</p></div>`;
-      document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
+      wireNav();
       return;
     }
     SCENES = window.LP_SCENES; TOTAL = SCENES.length; ROLES = window.LP_ROLES || {};
@@ -432,9 +435,8 @@
       el.innerHTML = `<img src="${url}" alt="${esc(BOOK.title)} cover">`;
       const cap = document.getElementById('cover-caption'); if (cap && BOOK.credits && BOOK.credits.images) cap.textContent = BOOK.credits.images.what;
     });
-    document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
+    wireNav();
     document.getElementById('btn-continue').onclick = () => go({ name: 'chapter', num: Math.min(progress.current, TOTAL), mode: 'read' });
-    document.getElementById('btn-select').onclick = () => go({ name: 'select' });
     if (hasText) document.getElementById('btn-listen').onclick = () => go({ name: 'listen', autoplay: true });
     document.getElementById('btn-reset').onclick = () => {
       if (!confirm('Clear all progress for this book? (The book text stays.)')) return;
@@ -466,8 +468,8 @@
         const done = !!progress.completed[c.num], locked = !isUnlocked(c.num);
         return `<button class="chapter-card ${done ? 'done' : ''} ${locked ? 'locked' : ''}" data-n="${c.num}" ${locked ? 'disabled' : ''}>
           <span class="n">CHAPTER ${roman(c.num)}</span><span class="t">${esc(c.title)}</span>${settings.koHelp && c.ko ? `<span class="k">${esc(c.ko)}</span>` : ''}</button>`;
-      }).join('')}</div>`, { actions: `<label style="font-size:14px;color:#a9b0cf"><input type="checkbox" id="free" ${info.freeMove ? 'checked' : ''}> Unlock all chapters</label><button class="btn small" id="btn-back">← Title</button>` });
-    document.getElementById('btn-back').onclick = () => go({ name: 'title' });
+      }).join('')}</div>`, { actions: `<label style="font-size:14px;color:#a9b0cf"><input type="checkbox" id="free" ${info.freeMove ? 'checked' : ''}> Unlock all chapters</label><button class="btn small" id="btn-home">← Title</button>` });
+    wireNav();
     document.getElementById('free').onchange = (e) => { info.freeMove = e.target.checked; saveInfo(); renderSelect(); };
     app.querySelectorAll('.chapter-card').forEach(b => b.onclick = () => go({ name: 'chapter', num: +b.dataset.n, mode: 'read' }));
   }
@@ -483,11 +485,9 @@
         </div>`}
       </div>
       <div id="body"></div>`,
-      { actions: '<button class="btn small" id="btn-select">Contents</button><button class="btn small" id="btn-home">Title</button><button class="btn small" id="btn-lib">Library</button>', folioLeft: String(n), folioRight: esc(m.title).toUpperCase() });
+      { actions: NAV, folioLeft: String(n), folioRight: esc(m.title).toUpperCase() });
     renderPicture(document.getElementById('picture'), n, document.getElementById('picture-caption'));
-    document.getElementById('btn-select').onclick = () => go({ name: 'select' });
-    document.getElementById('btn-home').onclick = () => go({ name: 'title' });
-    document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
+    wireNav();
     if (BOOK.readOnly) view.mode = 'read';
     else {
       document.getElementById('tab-read').onclick = () => go({ name: 'chapter', num: n, mode: 'read' });
@@ -564,10 +564,7 @@
       </div></div>`;
     const btnPlay = document.getElementById('tts-play'), btnPause = document.getElementById('tts-pause'), btnStop = document.getElementById('tts-stop');
     const voiceSel = document.getElementById('voice'), textEl = document.getElementById('reader-text');
-    T.onVoices(vs => {
-      voiceSel.innerHTML = vs.map(v => `<option value="${esc(v.name)}" ${v.name === settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('') || '<option>default</option>';
-    });
-    voiceSel.onchange = () => { settings.voice = voiceSel.value; saveSettings(); T.setVoice(settings.voice); };
+    voicePicker(voiceSel);
     T.setVoice(settings.voice); T.setRate(settings.rate);
     document.getElementById('rate').oninput = (e) => { settings.rate = +e.target.value; document.getElementById('rate-v').textContent = settings.rate; saveSettings(); T.setRate(settings.rate); };
 
@@ -664,10 +661,8 @@
     bookShell(`<div class="chapter-num" id="ls-chnum">&nbsp;</div><div class="picture" id="ls-picture">${ART.cover()}</div><div class="caption" id="ls-caption"></div>`,
       `<div class="chapter-head"><div><div class="num">AUDIOBOOK · ${esc(BOOK.title)}</div><div class="title" id="ls-title">&nbsp;</div></div></div>
       <div id="body"><p class="muted">Getting the book ready…</p></div>`,
-      { actions: '<button class="btn small" id="btn-select">Contents</button><button class="btn small" id="btn-home">Title</button><button class="btn small" id="btn-lib">Library</button>', folioRight: 'AUDIOBOOK' });
-    document.getElementById('btn-select').onclick = () => go({ name: 'select' });
-    document.getElementById('btn-home').onclick = () => go({ name: 'title' });
-    document.getElementById('btn-lib').onclick = () => (location.href = libraryUrl());
+      { actions: NAV, folioRight: 'AUDIOBOOK' });
+    wireNav();
     listenSetup().then(d => { if (view === myView) drawListen(d); });
   }
   function drawListen(d) {
@@ -825,11 +820,7 @@
       body.querySelectorAll('.ls-speed button').forEach(x => x.classList.toggle('active', x === b));
       show(L.index());
     });
-    const voiceSel = $('ls-voice');
-    if (voiceSel) {
-      T.onVoices(vs => { voiceSel.innerHTML = vs.map(v => `<option value="${esc(v.name)}" ${v.name === settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('') || '<option>default</option>'; });
-      voiceSel.onchange = () => { settings.voice = voiceSel.value; saveSettings(); T.setVoice(settings.voice); };
-    }
+    if ($('ls-voice')) voicePicker($('ls-voice'));
     if (view.autoplay) { view.autoplay = false; L.play(at); }
   }
 

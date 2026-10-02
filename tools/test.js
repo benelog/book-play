@@ -9,7 +9,7 @@ const P = window.LP_PARSER, M = window.LP_MATCHER, S = window.LP_STORAGE, D = wi
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { fails++; console.log('FAIL', msg); } };
 
-const roman = ['', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII','XXIII','XXIV','XXV','XXVI','XXVII'];
+const roman = Array.from({ length: 28 }, (_, i) => window.LP_NARRATION.roman(i));
 const words = ['', 'One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen','Twenty','Twenty-One','Twenty-Two','Twenty-Three','Twenty-Four','Twenty-Five','Twenty-Six','Twenty-Seven'];
 function synth(headingFn, blankLines = true) {
   let t = 'AN EXAMPLE BOOK\n\nTo a friend\n\n';
@@ -225,6 +225,17 @@ const loadBook = require('./load-book.js');
       });
     });
   }
+}
+
+// the service worker precaches every file the app shell loads (sw.js SHELL_FILES vs index.html)
+{
+  const root = path.join(__dirname, '..');
+  const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+  const shell = new Function('return ' + sw.match(/const SHELL_FILES = (\[[^\]]*\])/)[1])();
+  const used = [...fs.readFileSync(path.join(root, 'index.html'), 'utf8').matchAll(/(?:src|href)="([\w./-]+)"/g)].map(m => m[1]);
+  ok(used.length >= 10, 'index.html: found only ' + used.length + ' shell files');
+  used.forEach(f => ok(shell.includes(f), `sw.js SHELL_FILES lacks ${f}, which index.html loads`));
+  shell.filter(Boolean).forEach(f => ok(fs.existsSync(path.join(root, f)), `sw.js SHELL_FILES lists ${f}, which does not exist`));
 }
 
 console.log(fails ? `${fails} failure(s)` : 'all tests passed');

@@ -92,6 +92,11 @@ window.LP_NARRATION = (function () {
   const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
   const numberWord = (n) => n < 20 ? ONES[n] : n < 100 ? TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10].toLowerCase() : '') : String(n);
   const letters = (t) => String(t).toLowerCase().replace(/[^a-z0-9]/g, '');
+  // chapter numbers on screen (the app and the film): 4 -> 'IV'
+  function roman(n) {
+    const t = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+    let s = ''; for (const [v, r] of t) while (n >= v) { s += r; n -= v; } return s;
+  }
 
   /* The whole book as a list of steps: a title, the front matter to read, then for each chapter a card, its pictures
      and every subtitle-sized line. A step is { kind: 'title'|'card'|'picture'|'line'|'end', img, ch, para, who?, text?, say? };
@@ -161,5 +166,5 @@ window.LP_NARRATION = (function () {
   }
   const keyOf = (step, cast) => audioKey(step.who || 'narrator', step.say, character(cast, step.who).tts);
 
-  return { spans, quoteCount, spoken, chunks, build, numberWord, timeline, forBook, audioDir, castFile, DEFAULT_CAST, castOf, character, audioKey, keyOf };
+  return { spans, quoteCount, spoken, chunks, build, numberWord, roman, timeline, forBook, audioDir, castFile, DEFAULT_CAST, castOf, character, audioKey, keyOf };
 })();
