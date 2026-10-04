@@ -1,32 +1,35 @@
 /* Audiobook player: plays a list of spoken steps one after another — the recorded MP3 when a step has one, else the
    browser's speech — and keeps going with the phone's screen off until the book ends.
-   One <audio> element carries everything: the recordings, and a quiet loop while the browser voice speaks and in the
-   pauses between lines. So the page is always playing media: the phone keeps it running in the background, and the
-   lock screen and headphone buttons control it through the Media Session API. The loop is a 20 Hz hum at -40 dBFS:
-   below hearing and what earphones can play, but loud enough that the browser counts the page as playing sound.
+   Two <audio> elements: one plays the recordings, line after line; the other plays a quiet loop from play to pause,
+   under the recordings, the browser voice and the pauses between lines. So the page never stops playing media: the
+   phone keeps it running in the background, and the lock screen and headphone buttons control it through the Media
+   Session API. The loop is a 20 Hz hum at -40 dBFS: below hearing and what earphones can play, but loud enough that
+   the browser counts the page as playing sound.
+   The loop must not stop or change source while the book plays. A media element that changes its source leaves the
+   page's media session for a moment; with nothing else playing, Chrome gives up the audio focus, and Android (15 and
+   later) refuses a background app's request to take it back: the next line is paused at 0:00 with the screen off.
    Browser speech with the screen off depends on the phone (Android Chrome usually keeps going, iOS Safari stops);
    recorded books do not depend on it. */
 window.LP_LISTEN = (function () {
   const synth = window.speechSynthesis;
   const canSpeak = !!synth && 'SpeechSynthesisUtterance' in window;
   const ms = 'mediaSession' in navigator ? navigator.mediaSession : null;
-  const audio = new Audio();
+  const audio = new Audio();          // the recordings
   audio.preload = 'auto';
+  const bed = new Audio();            // the quiet loop, src set once
+  bed.loop = true;
   const pre = new Audio();          // warms the cache for the next recording
   pre.preload = 'auto';
   pre.muted = true;
 
-  let hum = null;
   function humUrl() {
-    if (hum) return hum;
     const rate = 8000, n = rate * 10, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
     const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
     str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
     v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
     v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
     for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.round(328 * Math.sin(2 * Math.PI * 20 * i / rate)), true);   // 200 whole cycles: loops without a click
-    hum = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
-    return hum;
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
   }
 
   /* o: { steps,                 [{ say, ch, … }]
@@ -38,19 +41,20 @@ window.LP_LISTEN = (function () {
   let o = null, i = 0, playing = false, rate = 1, token = 0, mode = null, timer = null, watch = null, srcAt = 0, metaKey = '';
   const abs = (u) => new URL(u, location.href).href;
 
-  function setSrc(url, loop) {
+  function setSrc(url) {
     if (audio.src !== abs(url)) { audio.src = url; srcAt = Date.now(); }
-    audio.loop = loop;
-    audio.defaultPlaybackRate = audio.playbackRate = loop ? 1 : rate;
+    audio.defaultPlaybackRate = audio.playbackRate = rate;
   }
-  const start = () => { const p = audio.play(); if (p && p.catch) p.catch(err => { if (err && err.name === 'NotAllowedError') blocked(); }); };
+  const play = (el) => { const p = el.play(); if (p && p.catch) p.catch(err => { if (err && err.name === 'NotAllowedError') blocked(); }); };
+  const start = () => { keepAlive(); play(audio); };
   function blocked() {
     if (!playing) return;
     pause();
     o && o.onProblem && o.onProblem('The browser blocked playback. Press play to start.');
   }
   function clearTimers() { clearTimeout(timer); clearTimeout(watch); timer = watch = null; }
-  function keepAlive() { setSrc(humUrl(), true); if (audio.paused) start(); }
+  function keepAlive() { if (!bed.src) bed.src = humUrl(); if (bed.paused) play(bed); }
+  function quiet() { if (!audio.paused) audio.pause(); }   // the recording element stops; the loop goes on
 
   function updateMeta() {
     if (!ms || !o || !o.meta) return;
@@ -77,7 +81,7 @@ window.LP_LISTEN = (function () {
     updateMeta();
     const url = o.src(i), next = o.src(i + 1);
     if (next && pre.src !== abs(next)) pre.src = next;
-    if (url) { mode = 'file'; setSrc(url, false); start(); return; }
+    if (url) { mode = 'file'; setSrc(url); start(); return; }
     speak(t, 0, 0);
   }
   // Browser voices may stop in a long utterance: a long line is spoken in pieces cut after a comma, semicolon or colon.
@@ -96,7 +100,7 @@ window.LP_LISTEN = (function () {
     part = part || 0;
     const text = parts[part];
     mode = 'speech';
-    keepAlive();
+    quiet(); keepAlive();
     const guess = 2500 + 1000 * text.length / (13 * rate);
     const done = () => { if (part + 1 < parts.length) speak(t, 0, part + 1); else after(t); };
     if (!canSpeak) { watch = setTimeout(() => t === token && done(), guess); return; }
@@ -128,13 +132,13 @@ window.LP_LISTEN = (function () {
     i++;
     if (gap > 30 && i < o.steps.length) {
       mode = 'gap';
-      keepAlive();
+      quiet(); keepAlive();
       timer = setTimeout(() => run(t, true), gap);
     } else run(t, true);
   }
   function finish() {
     token++; clearTimers(); mode = null;
-    audio.pause(); audio.removeAttribute('src'); audio.load();
+    audio.pause(); audio.removeAttribute('src'); audio.load(); bed.pause();
     i = Math.max(0, o.steps.length - 1);
     setState(false);
     o.onEnd && o.onEnd();
@@ -143,12 +147,20 @@ window.LP_LISTEN = (function () {
   audio.addEventListener('ended', () => { if (playing && mode === 'file') after(token); });
   audio.addEventListener('error', () => {
     // a missing or broken recording: the browser voice reads that step instead
-    if (playing && mode === 'file' && audio.src && !audio.src.startsWith('blob:')) speak(token, 0, 0);
+    if (playing && mode === 'file' && audio.src) speak(token, 0, 0);
   });
+  // paused from outside (headphones unplugged, a phone call, the lock screen): follow it. Our own pauses come after
+  // setState(false), and the recording's source changes are ignored.
+  function outside() {
+    token++; clearTimers();
+    if (canSpeak) synth.cancel();
+    audio.pause(); bed.pause();
+    setState(false);
+  }
   audio.addEventListener('pause', () => {
-    // paused from outside (headphones unplugged, a phone call): follow it. Our own source changes are ignored.
-    if (playing && mode === 'file' && !audio.ended && Date.now() - srcAt > 800) { token++; clearTimers(); setState(false); }
+    if (playing && mode === 'file' && !audio.ended && Date.now() - srcAt > 800) outside();
   });
+  bed.addEventListener('pause', () => { if (playing) outside(); });
 
   function go(k, auto) {
     token++; clearTimers();
@@ -161,7 +173,7 @@ window.LP_LISTEN = (function () {
     if (!o) return;
     token++; clearTimers();
     if (canSpeak) synth.cancel();
-    audio.pause();
+    audio.pause(); bed.pause();
     setState(false);
   }
   function resume() {
@@ -175,7 +187,7 @@ window.LP_LISTEN = (function () {
   function stop() {
     token++; clearTimers();
     if (canSpeak) synth.cancel();
-    audio.pause(); audio.removeAttribute('src'); audio.load(); pre.removeAttribute('src');
+    audio.pause(); audio.removeAttribute('src'); audio.load(); pre.removeAttribute('src'); bed.pause();
     mode = null; metaKey = '';
     if (playing) setState(false);
     if (ms) { try { ms.metadata = null; } catch (e) { /* ignore */ } ms.playbackState = 'none'; }
