@@ -779,13 +779,7 @@
       steps,
       src: (k) => (steps[k] && steps[k].ms ? `${audioDir}/${steps[k].key}.mp3` : null),
       voice: (k) => ({ voice: T.pick(), pitch: (who(steps[k]).pitch) || 1 }),
-      gap: (k) => {
-        const a = steps[k], b = steps[k + 1];
-        if (!b) return 0;
-        if (b.ch !== a.ch) return 2000;
-        if (a.kind !== 'line') return 900;
-        return a.para === b.para ? 250 : 650;
-      },
+      gap: (k) => N.gapAfter(steps[k], steps[k + 1]),
       meta: (k) => ({ title: chName(steps[k].ch), artist: BOOK.author || '', album: BOOK.title, artwork: coverUrl }),
       chapter: jump,
       onStep: (k, auto) => {

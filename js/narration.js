@@ -166,5 +166,8 @@ window.LP_NARRATION = (function () {
   }
   const keyOf = (step, cast) => audioKey(step.who || 'narrator', step.say, character(cast, step.who).tts);
 
-  return { spans, quoteCount, spoken, chunks, build, numberWord, roman, timeline, forBook, audioDir, castFile, DEFAULT_CAST, castOf, character, audioKey, keyOf };
+  // The pause after step a when b comes next, in ms at speed 1: the audiobook (js/listen.js) and tools/book-audio.js.
+  const gapAfter = (a, b) => !b ? 0 : b.ch !== a.ch ? 2000 : a.kind !== 'line' ? 900 : a.para === b.para ? 250 : 650;
+
+  return { spans, quoteCount, spoken, chunks, build, numberWord, roman, timeline, forBook, audioDir, castFile, DEFAULT_CAST, castOf, character, audioKey, keyOf, gapAfter };
 })();

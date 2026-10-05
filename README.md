@@ -64,6 +64,7 @@ tools/test.js         node tools/test.js — 파서·판정·모든 책의 장�
 tools/load-book.js    node 도구들이 책(장면·본문·cast·녹음 목록)을 앱과 같은 방식으로 읽어 들이는 공용 모듈
 tools/book-quotes.js  node tools/book-quotes.js <id> [from] [to] — 책의 인용문과 cast.js의 화자를 나란히 출력
 tools/book-voices.py  책 녹음: 오디오북·어린 왕자 영화의 줄마다 OpenAI TTS 또는 로컬 Kokoro (녹음이 없는 줄만; <audio>.js 목록을 다시 씀; --sample 목소리 샘플)
+tools/book-audio.js   node tools/book-audio.js <id> [out] — 녹음을 오디오북 순서·쉼대로 이어 책 한 파일(장 표시)과 장별 파일(앨범 태그) .m4a로
 tools/kokoro-tts.py   book-voices.py가 uv로 돌리는 로컬 Kokoro-82M 음성 생성기
 tools/film-timing.py  녹음마다 입 모양 곡선(50ms)과 단어 시각(faster-whisper) → film/timing.js (없는 것만)
 tools/film-layers.py  그림을 먼 층·땅 층으로 나누고 얼굴 조각을 만듦 (Codex 편집 + rembg) → images/layers/, film/layers.js
